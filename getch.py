@@ -1,5 +1,5 @@
 # taken from https://code.activestate.com/recipes/134892/
-# originally written by Danny Yoo, timeout added by me
+# originally written by Danny Yoo
 #
 # fun note: it was posted 18 years ago and still works!
 
@@ -13,8 +13,6 @@ class _Getch:
             self.impl = _GetchUnix()
 
     def __call__(self,timeout=0):
-        # stop execution at timeout
-        #signal.alarm(timeout)
         return self.impl()
 
 class _GetchUnix:
