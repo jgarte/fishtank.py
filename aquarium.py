@@ -5,12 +5,11 @@ import os
 import sys
 import time
 import json
-import getch
 import random
 import signal
 import threading
+from getch import getch
 
-import ui
 
 
 # VARIABLE SETUP
@@ -41,13 +40,16 @@ foods = []
 def exit(*args):
     global keepGoing
     keepGoing = False
+    dbg('gracefully exited. goodbye!')
     print('\033[0;0H\033[2J\033[?25h')
 
 
 ## function for logging data
 def dbg(*args):
+    s = ' '.join([str(a) for a in args])
     with open(logfile,'a') as f:
-        f.write(' '.join([str(a) for a in args])+'\n')
+        f.write(s+'\n')
+    sys.stdout.write(f"\033[{tHeight-2};0H"+s)
 
 
 ## main loop to handle inputs
@@ -55,8 +57,8 @@ def dbg(*args):
 def getchLoop():
     while keepGoing:
         key = getch()
-        if key == "q":
-            exit()
+        ui.sendKey(key)
+
 
 
 
@@ -74,6 +76,9 @@ class Tank:
 
     def drawNewFrame(self):
         for f in self.fishes:
+            if f.is_paused:
+                continue
+
             skin = f.skin
 
             # clear previous
@@ -82,7 +87,6 @@ class Tank:
 
             # print new
             frame = f.getNextFrame()
-            sys.stdout.write(f'\033[{tHeight-2};0H\033[K'+str(frame))
 
             if isinstance(frame, str):
                 if frame == 'turn':
@@ -136,26 +140,35 @@ class Tank:
 
 
 class Fish:
-    # frame-based system
-    # tank handler goes through each fish, gets a new frame and prints it at once
     def __init__(self,properties={}):
         self.pos = tWidth//2,tHeight//2
 
+        # instance variables
         self.path = []
         self.actions = []
         self.sleepCounter = 0
         self.sleepTarget = 0
 
+        # flags
+        self.is_paused = False
+
+        # variables for movement
         self.food = None
         self.POI = None
 
-        # PROPERTIES
+        # PROPERTIES (TEMPORARY)
+        ## TODO: save & reload
         self.name = None
         self.species = 'Molly'
         self.data = data[self.species]
         self.age = 1
 
+        # set skins according to properties
         self.getSkins()
+
+
+    def pause(self,state=True):
+        self.is_paused = state
 
 
     def getSkins(self):
@@ -263,7 +276,6 @@ class Fish:
 
 
     def getNewPoint(self):
-
         if len(foods):
             index = random.randint(0,len(foods)-1)
             self.food = foods[index]
@@ -282,7 +294,7 @@ class Fish:
                 y += random.randint(-5,5)
                 xy = x,y
 
-                # TODO: this isnt good
+                # TODO: this isnt working
                 xlimit = tank.xborder+tank.size[0]-len(self.skin)
                 ylimit = tank.yborder+tank.size[1]-1
 
@@ -322,6 +334,67 @@ class Fish:
             self.path.append([x,y])
 
 
+class Interface:
+    def __init__(self):
+        self.cmd = ""
+        self.is__in_prompt = False
+
+
+    def sendKey(self,key):
+        # eventually this will work with dicts like:
+        # {
+        #   "q": "exit_program",
+        #   "\x1b": "esc_menu",
+        #   "f": "feeding_menu"
+        # },
+        #
+        # based on current menu, where the key will
+        # be the input character and the value the
+        # command for the program to handle.
+        #
+        # manual typing input will likely exist as
+        # an option, but wont be needed after PHASE 1.
+
+        if self.is__in_prompt:
+            # end prompt, send command
+            if key == '\r':
+                self.handleCommand(self.cmd)
+                self.cmd = ""
+                self.is__in_prompt = False
+
+            # add key to current command
+            else:
+                self.cmd += key
+                self.echo(self.cmd)
+
+        if key in "q":
+            exit()
+
+        elif key == "!":
+            self.is__in_prompt = True
+
+        # escape
+        elif key == "\x1b":
+            if self.is__in_prompt:
+                self.is__in_prompt = False
+                self.echo("\033[K")
+                self.cmd = ""
+            # else:
+            #     for f in tank.fishes:
+            #         f.pause()
+
+        # backspace
+        # TODO
+
+    def handleCommand(self,cmd):
+        self.echo("Your command was "+cmd+".")
+
+    def echo(self,s,clear=True):
+        sys.stdout.write(f'\033[{tHeight-2};0H'+("\033[K" if clear else "")+s)
+        sys.stdout.flush()
+
+
+
 
 # STARTUP
 ## initialize screen
@@ -345,9 +418,14 @@ tank.fishes = [Fish() for _ in range(5)]
 counter = 0
 globalTimer = 0
 
+## interface handler
+ui = Interface()
+
+
 # MAIN LOOP ================================================================
 ## input loop
 threading.Thread(target=getchLoop).start()
+
 ## main display loop
 while keepGoing:
     tank.drawNewFrame()
@@ -358,12 +436,7 @@ while keepGoing:
         tank.generatePOI()
         counter = 0
 
-    # if POI:
-        # sys.stdout.write(f'\033[{tHeight-2};0H\033[K'+str(POI))
-
     sys.stdout.flush()
     globalTimer += frametime
 
     time.sleep(frametime)
-
-dbg('gracefully exited. goodbye!')
