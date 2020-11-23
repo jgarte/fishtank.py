@@ -383,6 +383,7 @@ class Interface:
                     self.echo("\033[K")
                     self.cmd = ""
                     self.is__in_prompt = False
+                    self.is__escape_char = False
                     return
 
                 # reset states
