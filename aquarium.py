@@ -337,7 +337,11 @@ class Fish:
 class Interface:
     def __init__(self):
         self.cmd = ""
+        self.prompt = "command: "
+        self.xcursor = 0
+
         self.is__in_prompt = False
+        self.is__escape_char = False
 
 
     def sendKey(self,key):
@@ -354,43 +358,107 @@ class Interface:
         #
         # manual typing input will likely exist as
         # an option, but wont be needed after PHASE 1.
+        #
 
+        highlight = '\033[47m'
+
+        # mostly for debug/easy access, may be removed
         if self.is__in_prompt:
+
+            if self.is__escape_char:
+                # second key in escape characters
+                if key == "[":
+                    return
+
+                # move cursor left
+                elif key in ['D','K']:
+                    self.xcursor = max(self.xcursor-1,0)
+
+                # move cursor right
+                elif key in ['C','M']:
+                    self.xcursor = min(self.xcursor+1,len(self.cmd))
+
+                # do escape behavior (exit prompt)
+                else:
+                    self.echo("\033[K")
+                    self.cmd = ""
+                    self.is__in_prompt = False
+                    return
+
+                # reset states
+                key = ""
+                self.is__escape_char = False
+
             # end prompt, send command
-            if key == '\r':
+            if key in ['\r','\n']:
                 self.handleCommand(self.cmd)
                 self.cmd = ""
                 self.is__in_prompt = False
+                return
+
+            # escape
+            elif key == "\x1b":
+                self.is__escape_char = True
+                return
+
+            # backspace
+            if key == '\x7f':
+                # avoid index errors
+                if self.xcursor > 1:
+                    left = self.cmd[:self.xcursor-len(self.prompt)-2]
+                    right = self.cmd[self.xcursor-len(self.prompt)-1:]
+                    self.cmd = left+right
+                    self.xcursor -= 1
+
+                # not sure about this
+                if len(self.cmd) == 0 and False:
+                    self.sendKey('\x1b')
+                    return
+
+            # move up in history
+            elif key == 0:
+                navigate_history('up')
+
+            # move down in history
+            elif key == 0:
+                navigate_history('down')
 
             # add key to current command
-            else:
+            elif key:
                 self.cmd += key
-                self.echo(self.cmd)
+                self.xcursor += 1
 
-        if key in "q":
+            # add highlight color
+            ## get left side
+            left = self.cmd[:self.xcursor]
+
+            ## get character under cursor
+            if self.xcursor > len(self.cmd)-1:
+                underCursor = ' '
+            else:
+                underCursor = self.cmd[self.xcursor]
+
+            ## get right side
+            right = self.cmd[self.xcursor+1:]
+
+            # echo result
+            self.echo(self.prompt+left+highlight+"\033[30m"+underCursor+'\033[0m'+right)
+
+
+        elif key == "q":
             exit()
 
-        elif key == "!":
+
+        elif key == "i":
             self.is__in_prompt = True
+            self.echo(self.prompt+self.cmd)
 
-        # escape
-        elif key == "\x1b":
-            if self.is__in_prompt:
-                self.is__in_prompt = False
-                self.echo("\033[K")
-                self.cmd = ""
-            # else:
-            #     for f in tank.fishes:
-            #         f.pause()
-
-        # backspace
-        # TODO
 
     def handleCommand(self,cmd):
         self.echo("Your command was "+cmd+".")
 
     def echo(self,s,clear=True):
-        sys.stdout.write(f'\033[{tHeight-2};0H'+("\033[K" if clear else "")+s)
+        sys.stdout.write(f'\033[{tHeight};0H'+("\033[K" if clear else "")+s)
         sys.stdout.flush()
 
 
