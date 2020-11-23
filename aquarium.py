@@ -404,9 +404,9 @@ class Interface:
             # backspace
             if key == '\x7f':
                 # avoid index errors
-                if self.xcursor > 1:
-                    left = self.cmd[:self.xcursor-len(self.prompt)-2]
-                    right = self.cmd[self.xcursor-len(self.prompt)-1:]
+                if self.xcursor > 0:
+                    left = self.cmd[:self.xcursor-1]
+                    right = self.cmd[self.xcursor:]
                     self.cmd = left+right
                     self.xcursor -= 1
 
@@ -423,9 +423,19 @@ class Interface:
             elif key == 0:
                 navigate_history('down')
 
-            # add key to current command
+            # add character at cursor
             elif key:
-                self.cmd += key
+                # split cmd
+                left = self.cmd[:self.xcursor]
+                right = self.cmd[self.xcursor:]
+
+                # add character
+                left += key
+
+                # rejoin command
+                self.cmd = left+right
+
+                # iterate cursor
                 self.xcursor += 1
 
             # add highlight color
