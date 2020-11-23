@@ -1,4 +1,3 @@
 # fishtank.py
-![main](img/main.png)
-
-An interactive fishtank for your terminal.
+### An interactive fishtank for your terminal.
+<img src="img/main.png" width=60%>
