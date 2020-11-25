@@ -14,7 +14,8 @@ from getch import getch
 
 # VARIABLE SETUP
 ## frametime & rate
-framerate = 15
+framerate = 60
+fish_framerate = 15
 frametime = 1/framerate
 
 ## loop controller
@@ -31,7 +32,16 @@ tWidth, tHeight = os.get_terminal_size()
 
 ## globals used
 POI = None
-foods = []
+available_foods = []
+
+## history
+### file length in lines
+historyLength = 100
+### history file
+history = os.path.join(PATH,'fishtank_history')
+
+if not "fishtank_history" in os.listdir(PATH):
+    open(history,'w').close()
 
 
 
@@ -53,16 +63,27 @@ def dbg(*args):
 
 
 ## main loop to handle inputs
-### TODO: whatever key captured should be sent to UI class for evaluation
 def getchLoop():
+    # this loop getch hijacked by current UI
     while keepGoing:
         key = getch()
-        ui.sendKey(key)
 
+        # feeding menu
+        if ui.is__in_feed:
+            ui.feedingSelection(key)
 
+        # normal
+        else:
+            ui.sendKey(key)
 
 
 # CLASSES
+## all classes under tank have some of the same functions & variables:
+## - getNewFrame()
+## - skin, pskin & rskin
+## - pos
+## - pause() & is_paused
+## these allow for a unified way of handling them.
 class Tank:
     # handles all activity within the tank
     def __init__(self,properties={}):
@@ -73,39 +94,48 @@ class Tank:
         self.drawBorders()
         self.generatePOI()
 
+        self.frame = []
 
-    def drawNewFrame(self):
-        for f in self.fishes:
-            if f.is_paused:
-                continue
 
-            skin = f.skin
+    def drawNewFrame(self,updateContents=True):
+        if updateContents:
+            for e in self.contents:
+                if e.is_paused:
+                    continue
 
-            # clear previous
-            px,py = f.pos
-            sys.stdout.write(f"\033[{py};{px}H"+len(f.skin)*' ')
+                skin = e.skin
 
-            # print new
-            frame = f.getNextFrame()
+                # clear previous
+                px,py = e.pos
+                sys.stdout.write(f"\033[{py};{px}H"+len(e.skin)*' ')
 
-            if isinstance(frame, str):
-                if frame == 'turn':
-                    skin = (f.skin if f.pskin == f.rskin else f.rskin)
-                    x,y = f.pos
-            else:
-                x,y = frame
+                # print new
+                frame = e.getNextFrame()
 
-                if x > px:
-                    skin = f.skin
+                # actions
+                if isinstance(frame, str):
+                    if frame == 'turn':
+                        skin = (e.skin if e.pskin == e.rskin else e.rskin)
+                        x,y = e.pos
                 else:
-                    skin = f.rskin
+                    x,y = frame
 
+                    if x > px:
+                        skin = e.skin
+                    else:
+                        skin = e.rskin
 
-            sys.stdout.write(f"\033[{y};{x}H"+skin)
+                sys.stdout.write(f"\033[{y};{x}H"+skin)
 
-            # update fish
-            f.pos = x,y
-            f.pskin = skin
+                # update variables
+                e.pos = x,y
+                e.pskin = skin
+
+        # UI actions
+        for e in self.frame:
+            content,xy = e
+            x,y = xy
+            sys.stdout.write(f"\033[{y};{x}H"+content)
 
 
     def generatePOI(self):
@@ -126,6 +156,10 @@ class Tank:
 
 
         POI = x,y
+
+    def pauseFish(self,value=True):
+        for e in self.contents:
+            e.is_paused = value
 
 
     def drawBorders(self):
@@ -194,16 +228,16 @@ class Fish:
 
 
     def getPigment(self):
-        # PHASE 2
+        #  PHASE2
         pass
 
 
     def applyPigment(self):
-        # PHASE 2
+        #  PHASE2
         pass
 
 
-    def generatePathTo(self,xy):
+    def generatePathTo(self,xy,maxStep=1):
         path = []
 
         x1,y1 = self.pos
@@ -221,7 +255,9 @@ class Fish:
         error = dx+dy
 
         while True:
-            path.append([x1,y1])
+            if random.randint(1,maxStep) == 1:
+                path.append([x1,y1])
+
             if (x1 == x2 and y1 == y2):
                 break
 
@@ -241,9 +277,10 @@ class Fish:
     def getNextFrame(self):
         if self.path == []:
             self.POI = None
-            self.food = None
 
             xy = self.getNewPoint()
+            maxStep = (3 if self.food else 1)
+
             self.generatePathTo(xy)
             self.animate()
 
@@ -276,11 +313,19 @@ class Fish:
 
 
     def getNewPoint(self):
-        if len(foods):
-            index = random.randint(0,len(foods)-1)
-            self.food = foods[index]
-            foods.pop(index)
-            xy = self.food.xy
+        global available_foods
+
+        if self.food:
+            self.food.pause()
+            self.food = None
+            return self.pos
+
+
+        elif len(available_foods):
+            index = random.randint(0,len(available_foods)-1)
+            self.food = available_foods[index]
+            available_foods.pop(index)
+            xy = self.food.pos
 
         elif POI != None:
 
@@ -330,55 +375,122 @@ class Fish:
 
     def sleep(self,t):
         x,y = self.path[-1]
-        for a in range(t*framerate):
+        for a in range(t*fish_framerate):
             self.path.append([x,y])
+
+
+class Pellet:
+    def __init__(self,pos,direction=1,health=None):
+        # temp, to be replaced by health system
+        # self.getSkin()
+        self.skin = '#'
+        self.rskin = '#'
+        self.pskin = '#'
+
+        # instance variables
+        self.pos = pos
+        self.health = health
+        self.direction = direction
+
+        # flags
+        self.is_paused = False
+
+    def getPath(self):
+        # make the path gen global
+        # fish needs to calculate how many frames away it is, query path[d] and go to it
+        # when it gets there pause it, animate and do stuff
+        pass
+
+    def getNextFrame(self):
+        if counter % 8 == 0:
+            x,y = self.pos
+
+            y += (1 if random.randint(1,3) > 1 else 0)
+            x += self.direction*random.randint(-1,2)
+
+            return (x,y)
+        else:
+            return self.pos
+
+    def pause(self,value=True):
+        self.is_paused = value
 
 
 class Interface:
     def __init__(self):
+        # instance variables
         self.cmd = ""
-        self.prompt = "command: "
+        self.history_location = 0
         self.xcursor = 0
+        self.prompt_default = "command: "
 
-        self.is__in_prompt = False
+        # flags
         self.is__escape_char = False
+        self.is__in_prompt = False
+        self.is__in_feed = False
+
+        # menu variables
+        self.feedcursor = 0
+        self.feed_coords = None
 
 
     def sendKey(self,key):
-        # eventually this will work with dicts like:
-        # {
-        #   "q": "exit_program",
-        #   "\x1b": "esc_menu",
-        #   "f": "feeding_menu"
-        # },
-        #
-        # based on current menu, where the key will
-        # be the input character and the value the
-        # command for the program to handle.
-        #
-        # manual typing input will likely exist as
-        # an option, but wont be needed after PHASE 1.
-        #
+        def navigateHistory(direction,save=False):
+            # save current line: TODO
+            if save and False:
+                history_l.insert(0,self.cmd)
+
+            # get new location
+            if direction == 'up':
+                history_loc = min(self.history_location+1,len(history_l))
+            else:
+                history_loc = max(0,self.history_location-1)
+
+            # refresh instance variable
+            self.history_location = history_loc
+
+            # handle stuff
+            if history_loc == 0:
+                self.cmd = ''
+            else:
+                self.cmd = history_l[-history_loc].rstrip()
+
+            # refresh cursor
+            self.xcursor = len(self.prompt+self.cmd)+1
+
 
         highlight = '\033[47m'
 
         # mostly for debug/easy access, may be removed
         if self.is__in_prompt:
 
+            # get history contents
+            with open(history,'r') as f:
+                history_l = f.readlines()
+
+            # HANDLE KEYS
             if self.is__escape_char:
-                # second key in escape characters
+                ## second key in escape characters
                 if key == "[":
                     return
 
-                # move cursor left
+                ## move cursor left
                 elif key in ['D','K']:
                     self.xcursor = max(self.xcursor-1,0)
 
-                # move cursor right
+                ## move cursor right
                 elif key in ['C','M']:
                     self.xcursor = min(self.xcursor+1,len(self.cmd))
 
-                # do escape behavior (exit prompt)
+                ## move up in history
+                elif key in ['A','TODO']:
+                    navigateHistory('up',save=True)
+
+                ## move down in history
+                elif key in ['B','TODO']:
+                    navigateHistory('down')
+
+                ## do escape behavior (exit prompt)
                 else:
                     self.echo("\033[K")
                     self.cmd = ""
@@ -386,24 +498,17 @@ class Interface:
                     self.is__escape_char = False
                     return
 
-                # reset states
+                ## reset states
                 key = ""
                 self.is__escape_char = False
 
-            # end prompt, send command
-            if key in ['\r','\n']:
-                self.handleCommand(self.cmd)
-                self.cmd = ""
-                self.is__in_prompt = False
-                return
-
-            # escape
+            ## escape
             elif key == "\x1b":
                 self.is__escape_char = True
                 return
 
-            # backspace
-            if key == '\x7f':
+            ## backspace
+            elif key == '\x7f':
                 # avoid index errors
                 if self.xcursor > 0:
                     left = self.cmd[:self.xcursor-1]
@@ -416,15 +521,25 @@ class Interface:
                     self.sendKey('\x1b')
                     return
 
-            # move up in history
-            elif key == 0:
-                navigate_history('up')
+            ## end prompt, send command
+            elif key in ['\r','\n']:
 
-            # move down in history
-            elif key == 0:
-                navigate_history('down')
+                # save command: TODO
+                if False:
+                    history_l.append(self.cmd)
+                    dbg('history:',history_l)
+                    if len(self.cmd):
+                        with open(history,'w') as f:
+                            f.write(history_l[:historyLength])
 
-            # add character at cursor
+                self.handleCommand(self.cmd)
+                self.cmd = ""
+                self.is__in_prompt = False
+                self.is__escape_char = False
+
+                return
+
+            ## add character at cursor
             elif key:
                 # split cmd
                 left = self.cmd[:self.xcursor]
@@ -439,39 +554,160 @@ class Interface:
                 # iterate cursor
                 self.xcursor += 1
 
-            # add highlight color
-            ## get left side
+
+            # FORMAT, SEND CMD
+            ## Add highlight color
+            ### get left side
             left = self.cmd[:self.xcursor]
 
-            ## get character under cursor
+            ### get character under cursor
             if self.xcursor > len(self.cmd)-1:
                 underCursor = ' '
             else:
                 underCursor = self.cmd[self.xcursor]
 
-            ## get right side
+            ### get right side
             right = self.cmd[self.xcursor+1:]
 
-            # echo result
+
+            ## Echo result
             self.echo(self.prompt+left+highlight+"\033[30m"+underCursor+'\033[0m'+right)
 
 
-        elif key == "q":
-            exit()
+        # PLANS
+        # - manual typing input will likely exist as
+        #   an option, but wont be needed after PHASE1.
+        # - navigation will be context based, with (customizable?) dicts controlling mappings.
 
+        controls = {
+            "q": "exit",
+            "i": "start_prompt",
+            "f": "feed",
+            "\x1b": "start_prompt"
+        }
 
-        elif key == "i":
-            self.is__in_prompt = True
-            self.echo(self.prompt+self.cmd)
+        if not self.is__in_prompt and key in controls.keys():
+            self.handleCommand(controls[key])
 
 
     def handleCommand(self,cmd):
         self.echo("Your command was "+cmd+".")
 
+        # get verb and args
+        split = cmd.split(' ')
+        verb = split[0]
+        if len(split) > 1:
+            args = split[1:]
+        else:
+            args = []
+
+        # TODO: move everything under here into functions
+
+        # launch commands
+        ## prompt
+        if verb == "start_prompt":
+            # get prompt value
+            if len(args):
+                self.prompt = ' '.join(args)
+            else:
+                self.prompt = self.prompt_default
+
+            # set up prompt
+            self.is__in_prompt = True
+            self.xcursor = 0
+            self.echo(self.prompt+self.cmd)
+
+        ## feeding menu
+        ### TODO
+        ### for now just a cluster of points
+        elif verb == "feed":
+
+            # try to get coords
+            coords = None
+            if len(args):
+               coords = args.split(',')
+
+               if len(coords) != 2:
+                   dbg('invalid coords value "'+str(coors)+'".')
+                   coords = None
+
+            # start feeding menu
+            ## this controls if selection should be bypassed
+            self.feed_coords = coords
+            ## start selection
+            self.feedingSelection()
+
+        ## exit program
+        elif verb == "exit":
+            exit()
+
+
     def echo(self,s,clear=True):
         sys.stdout.write(f'\033[{tHeight};0H'+("\033[K" if clear else "")+s)
         sys.stdout.flush()
 
+
+
+    # FEEDING
+    def feedingSelection(self,key=None):
+        tank.frame = []
+        if key == None:
+            tank.pauseFish()
+            self.echo("Use 'H' to move left, 'L' to move right!")
+            self.is__in_feed = True
+            self.feed_index = 0
+
+        if not self.feed_coords:
+            # PRINT SELECTION
+            y = max(tank.yborder - 3,2)
+            counter = 0
+            xs = []
+            skins = ['#','x','.']
+
+            for x in range(tank.xborder, tank.size[0]+tank.xborder):
+                if x % 2 == 0:
+                    tank.frame.append(['.',(x,y)])
+                    xs.append(x)
+
+        if key == '\x1b':
+            tank.pauseFish(0)
+            self.echo('\033[K')
+            self.is__in_feed = False
+
+        elif key == "l":
+            self.feedcursor += 1
+
+        elif key == "h":
+            self.feedcursor -= 1
+
+        elif key in ["\r","\n"]:
+            # end feeding selection
+            self.feedingSelection('\x1b')
+
+            # set coords for spawn
+            self.feed_coords = [xs[self.feedcursor],y]
+
+            # remove guide from tank
+            tank.frame = tank.frame[-1:]
+            sys.stdout.write(f'\033[{y};{0}H'+'\033[K')
+
+            # start spawn
+            self.feedingSpawn()
+
+        tank.frame.append(["\033[30;47m"+'#'+'\033[0m',(xs[self.feedcursor],y)])
+
+
+    def feedingSpawn(self,num=20):
+        global available_foods
+
+        for c in range(num):
+            direction = (-1 if c % 2 else 1)
+            p = Pellet(self.feed_coords,direction=direction)
+            available_foods.append(p)
+            tank.contents.append(p)
+
+
+    
 
 
 
@@ -489,9 +725,11 @@ open(logfile,'w').close()
 ## catch exit
 signal.signal(signal.SIGINT,exit)
 
-## TODO: finalize
+## TODO:
+## - save
+## - restore
 tank = Tank()
-tank.fishes = [Fish() for _ in range(5)]
+tank.contents = [Fish() for _ in range(5)]
 
 ## time counters
 counter = 0
@@ -500,22 +738,30 @@ globalTimer = 0
 ## interface handler
 ui = Interface()
 
-
 # MAIN LOOP ================================================================
 ## input loop
 threading.Thread(target=getchLoop).start()
 
-## main display loop
+## display loop
 while keepGoing:
-    tank.drawNewFrame()
+
+    # update UI at 60FPS but fish only at 15.
+    if counter % (framerate/fish_framerate) == 0:
+        updateContents = True
+    else:
+        updateContents = False
+
+    tank.drawNewFrame(updateContents=updateContents)
     tank.drawBorders()
+
+    # increment globals
     counter += 1
-
-    if counter == frametime**-1 * 2:
-        tank.generatePOI()
-        counter = 0
-
-    sys.stdout.flush()
     globalTimer += frametime
 
+    # generate POI if timer
+    if counter % framerate*2 == 0:
+        tank.generatePOI()
+
+    # update, loop
+    sys.stdout.flush()
     time.sleep(frametime)
