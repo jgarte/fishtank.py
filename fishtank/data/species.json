@@ -1,6 +1,6 @@
 {
     "Molly": {
-        "stages": [">->","><'>","></'>"],
+        "stages": [">->","><'>",">-<'>"],
         "age": 0,
         "speed": 3,
         "pigment": [242],
@@ -35,7 +35,6 @@
                 "message": "wobble wobble"
             },
             "winona": {
-                "stages": [">->","><'>","></'>"],
                 "pigment": [233,232,233,253],
                 "age": 0,
                 "speed": null,
@@ -81,13 +80,13 @@
                 "speed": 5
             },
             "baby": {
-                "stages": ["><'>","=-","."],
+                "stages": [".","=-","><'>"],
                 "pigment": [240],
                 "age": 0,
                 "speed": 5
             },
             "mjoofin": {
-                "stages": ["><>","=-","."],
+                "stages": [".","=-","><>"],
                 "pigment": [240,240,249],
                 "age": 0,
                 "speed": 5
