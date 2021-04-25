@@ -17,7 +17,7 @@ setup(
     author_email='bczsalba@gmail.com',
     entry_points={
         "console_scripts": [
-            'fishtank = fishtank.main:main'
+            'fishtank = fishtank.main:cmdline'
         ]
     }
 )

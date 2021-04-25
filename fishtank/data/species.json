@@ -1,42 +1,47 @@
 {
     "Molly": {
         "stages": [">->","><'>",">-<'>"],
-        "age": 0,
+        "age": 1,
         "speed": 3,
         "pigment": [242],
-        "colors": {
-            "gold_dust": {
-                "chance": 20,
+        "variants": {
+            "golden": {
+                "chance": 5,
                 "dominance": 30,
-                "pigments": [214,220,221]
+                "pigment": [214,220,221]
+            },
+            "golden_panda": {
+                "chance": 15,
+                "dominance": 30,
+                "pigment": [214,220,221,232,234]
             },
             "silver": {
-                "chance": 40,
+                "chance": 35,
                 "dominance": 40,
-                "pigments": [249,252,255]
+                "pigment": [249,252,255]
             },
             "black": {
-                "chance": 60,
+                "chance": 70,
                 "dominance": 60,
-                "pigments": [232]
+                "pigment": [232]
             },
             "dalmatian": {
                 "chance": 100,
                 "dominance": 50,
-                "pigments": [232,234,235,247,251]
+                "pigment": [232,234,235,247,251]
             }
         },
         "specials": {
             "wobbly": {
-                "stages": [".","-=","-<>"],
+                "stages": ["-","-=","-<>"],
                 "pigment": [233,234,235],
-                "age": 0,
+                "age": 2,
                 "speed": 3,
                 "message": "wobble wobble"
             },
             "winona": {
                 "pigment": [233,232,233,253],
-                "age": 0,
+                "age": 1,
                 "speed": null,
                 "message": null
             },
@@ -53,7 +58,7 @@
             "goldie": {
                 "stages": [".",">-","><>"],
                 "pigment": [232,232,220],
-                "age": 0,
+                "age": 2,
                 "speed": 4
             },
             "strength": {
@@ -74,51 +79,52 @@
                 "speed": 4
             },
             "tiny": {
-                "stages": [">->","=-","."],
+                "stages": [".","=-",">->"],
                 "pigment": [240],
-                "age": 0,
+                "age": 1,
                 "speed": 5
             },
             "baby": {
                 "stages": [".","=-","><'>"],
                 "pigment": [240],
-                "age": 0,
+                "age": 1,
                 "speed": 5
             },
             "mjoofin": {
                 "stages": [".","=-","><>"],
                 "pigment": [240,240,249],
-                "age": 0,
+                "age": 1,
                 "speed": 5
             }
         }
     },
     "Guppy": {
-        "stages": [
-            ["]=>",")=>",">="]
-        ],
-        "special_skins": {},
-        "breed_colors": {
+        "stages": [">=","]=>",")=>"],
+        "age": 0,
+        "speed": 4,
+        "pigment": [141],
+        "variants": {
             "tuxedo": {
                 "chance": 60,
                 "dominance": 40,
-                "pigments": [232,255]
+                "pigment": [232,255]
             },
             "blue": {
                 "chance": 80,
                 "dominance": 30,
-                "pigments": [104,62,111]
+                "pigment": [104,62,111]
             },
             "green": {
                 "chance": 90,
                 "dominance": 20,
-                "pigments": [64,106,107]
+                "pigment": [64,106,107]
             },
             "panda": {
                 "chance": 100,
                 "dominance": 20,
-                "pigments": [104,62,232,255]
+                "pigment": [104,62,232,255]
             }
-        }
+        },
+        "specials": {}
     }
 }
