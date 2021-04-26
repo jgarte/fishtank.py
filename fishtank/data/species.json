@@ -23,7 +23,7 @@
             "black": {
                 "chance": 70,
                 "dominance": 60,
-                "pigment": [232]
+                "pigment": [232,233,237]
             },
             "dalmatian": {
                 "chance": 100,

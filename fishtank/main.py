@@ -11,7 +11,7 @@ The main module behind fishtank.py.
 import sys
 from pytermgui.utils import hide_cursor, wipe
 
-from . import interface, __version__, usage_data
+from . import interface, __version__, usage_data, dbg
 from .layout_generators import generate
 
 
@@ -28,8 +28,14 @@ def exit_program(sig, frame):
 def main():
     """ main method """
 
-    generate(do_output=False)
+    # dbg('generating layouts..')
+    generate(mode="dbg")
+    # dbg('done!')
+
+    dbg("starting interface...")
     interface.InterfaceManager().start()
+
+    dbg("thats all folks!")
     exit_program("", "")
 
 
@@ -52,7 +58,7 @@ def cmdline():
         sys.exit(0)
 
     elif test_args("-g", "--generate-layouts", args):
-        sys.exit(generate(do_output=True))
+        sys.exit(generate(mode="print"))
 
     else:
         print("not sure what to do with", args)

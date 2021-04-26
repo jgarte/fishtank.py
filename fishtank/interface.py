@@ -20,16 +20,15 @@ from pytermgui import (
     Prompt,
     Label,
     padding_label,
-    styles,
     getch,
     color,
     clean_ansi,
     load_from_file,
 )
-from pytermgui.utils import keys, basic_selection, hide_cursor, wipe
+from pytermgui.utils import keys, basic_selection, hide_cursor, wipe, width, height
 
-from . import SPECIES_DATA, to_local
-from .classes import Fish, Aquarium
+from . import SPECIES_DATA, to_local, styles
+from .classes import Fish, Aquarium, Position, Food
 
 
 class Menu:
@@ -80,7 +79,7 @@ class NewfishDialog(Menu):
         self.tabbar.options = self.types
         self.tabbar.select()
         self.tabbar.set_style(
-            "short_highlight", lambda depth, item: color(clean_ansi(item), 210)
+            "short_highlight", lambda depth, item: color(clean_ansi(item), 67)
         )
 
         self.current_index = 0
@@ -255,15 +254,76 @@ class NewfishDialog(Menu):
 
             if _fish_change:
                 self.variants.value = list(SPECIES_DATA[self.fish_key]["variants"])[0]
+                self.update_fish()
+
             print(self.menu)
+
+
+class FeedingMenu(Menu):
+    """ Menu for feeding stuff """
+
+    def setup(self):
+        """ Set up values """
+
+        self.pos = Position()
+
+    def select(self):
+        """ Show selection menu """
+
+        key = ""
+
+        right_pos = Position(1, 0)
+        left_pos = Position(-1, 0)
+        up_pos = Position(0, 1)
+        down_pos = Position(0, -1)
+
+        for obj in self.interface.aquarium:
+            obj.show()
+
+        while key not in ["ESC", "SIGTERM"]:
+            key = getch()
+
+            self.pos.wipe()
+            if key in keys.prev:
+                self.pos += up_pos
+
+            elif key in keys.next:
+                self.pos += down_pos
+
+            elif key in keys.back:
+                self.pos += left_pos
+
+            elif key in keys.fore:
+                self.pos += right_pos
+
+            elif key == "ENTER":
+                break
+
+            for obj in self.interface.aquarium:
+                obj.show()
+
+            print(self.pos.show())
+
+    def choose_size(self):
+        """ not sure bout this one """
+
+    def finish(self):
+        """ Finalize & add """
+
+    def run(self):
+        """ Run menu """
+
+        self.select()
+        self.choose_size()
+        self.finish()
 
 
 class InterfaceManager:
     """ Manager class for all interface related operations """
 
     def __init__(self):
-        styles.draculite()
-        self.aquarium = Aquarium()
+        styles.default()
+        self.aquarium = Aquarium(_width=width() - 5, _height=height() - 5)
         self.outer = Container()
         self.outer += self.aquarium
         self.outer += Label("main tank")
@@ -277,7 +337,7 @@ class InterfaceManager:
     def display_loop(self):
         """ Main display loop """
 
-        print(self.outer)
+        # print(self.outer)
         while self._loop:
             self.aquarium.update()
             sleep(1 / 25)
@@ -302,13 +362,20 @@ class InterfaceManager:
                 getch()
                 self.aquarium.pause(0)
 
+            elif key == "f":
+                self.aquarium += Food(self.aquarium)
+                # self.show(FeedingMenu)
+
             elif key == "CTRL_R":
-                self.aquarium.fish = []
+                self.aquarium.objects = []
                 self._loop = False
                 self._display_loop.join()
                 self._display_loop = Thread(target=self.display_loop)
                 self._loop = True
                 self.start()
+
+            elif key == "CTRL_L":
+                wipe()
 
     def show(self, menu: Type[Menu]):
         """ Show menu object """
@@ -319,7 +386,6 @@ class InterfaceManager:
         menu(self)
 
         wipe()
-        print(self.outer)
         self.aquarium.pause(False)
 
     def start(self):

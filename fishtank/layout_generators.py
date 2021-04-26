@@ -11,16 +11,25 @@ It is run at every startup, but can be called manually: `fishtank --generate-lay
 
 from os import mkdir
 from os.path import abspath, isdir
-from pytermgui import Container, Prompt, Label, InputField, padding_label, dump_to_file
-from pytermgui.utils import width
 
-from . import to_local
+from pytermgui.utils import width
+from pytermgui import (
+    Container,
+    Prompt,
+    Label,
+    InputField,
+    padding_label,
+    dump_to_file,
+)
+
+from . import to_local, dbg
 
 
 def generate_newfish_dialog():
     """ Menu for creating a new fish """
 
     cont = Container(width=32, shorten_elements=False)
+
     cont.static_width = 32
     cont += Label("add new fish!")
     cont += padding_label
@@ -109,7 +118,7 @@ def generate_info_page():
     dump_to_file(cont, to_local("layouts/info_page.ptg"))
 
 
-def generate(do_output: bool = True):
+def generate(mode: str = "print"):
     """ Run all generators """
 
     if not isdir(to_local("layouts")):
@@ -117,10 +126,14 @@ def generate(do_output: bool = True):
 
     for key, value in globals().items():
         if callable(value) and key.startswith("generate_"):
-            if do_output:
-                print(f"Running {key}() ... ", end="", flush=True)
+            text = f"Running {key}() ... "
+
+            if mode == "print":
+                print(text, end="", flush=True)
 
             value()
 
-            if do_output:
+            if mode == "print":
                 print("done!")
+            else:
+                dbg(text + "done!")

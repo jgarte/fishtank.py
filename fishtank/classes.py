@@ -17,7 +17,8 @@ from typing import Union, Generator, Optional
 from pytermgui import gradient, real_length, clean_ansi
 from pytermgui import Container, BaseElement, padding_label
 
-from . import SPECIES_DATA
+# pylint: disable=unused-import
+from . import SPECIES_DATA, dbg
 
 
 class Position:
@@ -73,6 +74,11 @@ class Position:
         """ Return 'x' at the position of self """
 
         return f"\033[{self.y};{self.x}Hx"
+
+    def wipe(self) -> None:
+        """ Wipe character at self.x & self.y """
+
+        print(f"\033[{self.y};{self.x}H ")
 
     def distance_to(self, other) -> float:
         """ Return distance from self to other """
@@ -309,9 +315,9 @@ class Fish:
 
         if len(self.path) > 0:
             # try to avoid moving to a position already occupied
-            fish_at_pos = self.parent.fish_at(self.pos)
-            if fish_at_pos and fish_at_pos is not self:
-                return self.pos
+            # fish_at_pos = self.parent.fish_at(self.pos)
+            # if fish_at_pos and fish_at_pos is not self:
+            #    return self.pos
 
             self.pos = self.path[0]
             self.path.pop(0)
@@ -340,6 +346,64 @@ class Fish:
         print(f"\033[{y};{x}H" + repr(self))
 
 
+class Food:
+    """ fud """
+
+    def __init__(self, parent: Aquarium, health: int = 5):
+        """ Initialize object """
+
+        self.skin: str = "#"
+        self.path: list = []
+        self.counter: int = 0
+        self._is_stopped: bool = False
+
+        self.pos = Position()
+        self.health = health
+        self.parent = parent
+
+    def stop(self):
+        """ Stop updates of object """
+
+        self._is_stopped = True
+
+    def update(self):
+        """ Update position & path"""
+
+        if self._is_stopped:
+            return
+
+        # only update on every second frame
+        self.counter += 1
+        if self.counter == 2:
+            self.counter = 0
+            return
+
+        x_change = randint(-1, 1)
+        change = Position(x_change, 1)
+        self.pos += change
+
+        if not self.parent.contains(self.pos):
+            if "y" in self.parent.bound_error(self.pos):
+                self.stop()
+            else:
+                self.pos -= change
+
+        if self.health <= 0:
+            self.stop()
+
+    def wipe(self):
+        """ Clear char at pos """
+
+        posx, posy = self.pos
+        print(f"\033[{posy};{posx}H" + real_length(self.skin) * " ")
+
+    def show(self):
+        """ Print self to pos """
+
+        posx, posy = self.pos
+        print(f"\033[{posy};{posx}H" + self.skin)
+
+
 class Aquarium(Container):
     """ An object to store & update fish """
 
@@ -348,7 +412,7 @@ class Aquarium(Container):
         """ Set up object """
 
         super().__init__(width=_width, height=_height)
-        self.fish: list[Fish] = []
+        self.objects: list[Union[Fish, Food]] = []
 
         if pos is None:
             pos = [0, 0]
@@ -375,11 +439,11 @@ class Aquarium(Container):
         x, y = self.pos
         return x + 1, y + 1, x + self.width + 1, y + self.height
 
-    def __iter__(self) -> Generator[Fish, None, None]:
+    def __iter__(self) -> Generator[Union[Fish, Food], None, None]:
         """ Iterate through fish children """
 
-        for fish in self.fish:
-            yield fish
+        for obj in self.objects:
+            yield obj
 
     def __add__(self, other: Union[BaseElement, Fish]) -> Aquarium:
         """ Add BaseElement or Fish to contents """
@@ -387,7 +451,7 @@ class Aquarium(Container):
         if issubclass(type(other), BaseElement):
             self._add_element(other)
         else:
-            self.fish.append(other)
+            self.objects.append(other)
             if not self.contains(other.pos):
                 other.pos = self._get_position_in_bounds(other)
             other.parent = self
@@ -419,7 +483,10 @@ class Aquarium(Container):
         """ Return the thing that is at the position given """
 
         px, py = pos
-        for e in self.fish:
+        for e in self.objects:
+            if not isinstance(e, Fish):
+                continue
+
             startx, starty, endx, endy = e.bounds
             if starty <= py <= endy and startx <= px <= endx:
                 return e
@@ -432,6 +499,26 @@ class Aquarium(Container):
         x, y = pos
         startx, starty, endx, endy = self.bounds
         return startx < x < endx and starty < y < endy
+
+    def bound_error(self, pos: Position) -> Union[str, None]:
+        """ Return which coord is not in bound """
+
+        if self.contains(pos):
+            return None
+
+        x, y = pos
+        startx, starty, endx, endy = self.bounds
+
+        x_error = not startx < x < endx
+        y_error = not starty < y < endy
+
+        if x_error and y_error:
+            return "xy"
+
+        if x_error:
+            return "x"
+
+        return "y"
 
     def move(self, pos: list[int], _wipe: bool = False) -> Aquarium:
         """ Implement move method using Position-s """
@@ -452,12 +539,12 @@ class Aquarium(Container):
         return self.target_pos
 
     def update(self):
-        """ Update all fish in self.fish """
+        """ Update elements in self.objects"""
 
         if self._is_paused:
             return
 
-        for fish in self.fish:
-            fish.wipe()
-            fish.update()
-            fish.show()
+        for element in self.objects:
+            element.wipe()
+            element.update()
+            element.show()
