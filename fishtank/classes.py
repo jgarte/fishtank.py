@@ -96,7 +96,12 @@ class Fish:
     """
 
     # pylint: disable=too-many-instance-attributes, invalid-name
-    def __init__(self, parent: Aquarium, properties: Optional[dict] = None):
+    def __init__(
+        self,
+        parent: Aquarium,
+        keep_data: Optional[bool] = False,
+        properties: Optional[dict] = None,
+    ):
         """ Set up instance """
 
         default_properties = {
@@ -150,7 +155,7 @@ class Fish:
                 del variants
 
         # get pigmentation
-        self.pigment = self._get_pigment(_species_data)
+        self.pigment = self.get_pigment(_species_data)
 
         # assign overwrites if name given
         if properties["name"]:
@@ -159,8 +164,11 @@ class Fish:
             if special_data:
                 self._load_from(special_data)
 
-        # delete unneeded data
-        del _species_data
+        # delete/store unneeded data
+        if keep_data:
+            self.species_data = _species_data
+        else:
+            del _species_data
 
         # 0 -> left, 1 -> right
         self._heading = 0
@@ -188,7 +196,9 @@ class Fish:
 
         return rev
 
-    def _get_pigment(self, data: dict) -> list[int]:
+    def get_pigment(self, data: dict) -> list[int]:
+        """ Get pigmentation using self.variant and data """
+
         variant_data = data["variants"].get(self.variant)
         if variant_data:
             pigment = []
@@ -334,10 +344,10 @@ class Aquarium(Container):
     """ An object to store & update fish """
 
     # pylint: disable=invalid-name
-    def __init__(self, pos: list[int] = None, _width: int = 70, _height: int = 15):
+    def __init__(self, pos: list[int] = None, _width: int = 70, _height: int = 25):
         """ Set up object """
-        super().__init__(width=_width, height=_height)
 
+        super().__init__(width=_width, height=_height)
         self.fish: list[Fish] = []
 
         if pos is None:

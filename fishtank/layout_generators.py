@@ -41,11 +41,11 @@ def generate_newfish_dialog():
     p_name.id = "prompt_name"
     data += p_name
 
-    p_age = Prompt("age:", "juvenile")
+    p_age = Prompt("age:", "None")
     p_age.id = "prompt_age"
     data += p_age
 
-    p_variants = Prompt("variant:", "random")
+    p_variants = Prompt("variant:", "None")
     p_variants.id = "prompt_variants"
     data += p_variants
 

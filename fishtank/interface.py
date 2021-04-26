@@ -11,7 +11,7 @@ The interface to the interactive fishtank to your terminal.
 from __future__ import annotations
 
 from threading import Thread
-from time import time, sleep
+from time import sleep
 from typing import Type
 
 from pytermgui import (
@@ -23,7 +23,6 @@ from pytermgui import (
     styles,
     getch,
     color,
-    gradient,
     clean_ansi,
     load_from_file,
 )
@@ -60,6 +59,7 @@ class NewfishDialog(Menu):
         self.age_names = ["fry", "juvenile", "adult"]
 
         self.menu = load_from_file(to_local("layouts/newfish.ptg"))
+        self.showcase_fish = Fish(self.interface.aquarium, keep_data=True)
         tank = self.menu[2]
         box = self.menu[4]
 
@@ -90,6 +90,7 @@ class NewfishDialog(Menu):
         self.age.value = self.age_names[1]
 
         self.skin.set_style("value", self.get_skin)
+        self.update_fish()
         self.menu.select()
         print(self.menu.center())
 
@@ -97,8 +98,17 @@ class NewfishDialog(Menu):
     def get_skin(self, depth: int, value: str):
         """ Return skin of currently selected fish species """
 
-        data = SPECIES_DATA[self.fish_key]
-        return gradient(data["stages"][1], data["pigment"])
+        return repr(self.showcase_fish)
+
+    def update_fish(self):
+        """ Update showcase fish pigment & skin """
+
+        fish = self.showcase_fish
+        fish.species = self.fish_key
+        fish.variant = self.variants.value
+        fish.name = self.name.value
+        fish.age = self.age_names.index(self.age.value)
+        fish.pigment = fish.get_pigment(fish.species_data)
 
     def change_name(self, caller: Type[BaseElement]):
         """ Dialog to change the name of the fish """
@@ -182,7 +192,10 @@ class NewfishDialog(Menu):
         """ Allow user to choose age """
 
         cont = Container(width=40)
+        cont += Label("Choose age for your fish!")
+        cont += padding_label
         cont += Prompt(options=self.age_names)
+        cont.center()
 
         basic_selection(cont, True)
         self.age.value = cont.selected[0].value
@@ -190,19 +203,26 @@ class NewfishDialog(Menu):
     def create_fish(self, caller: Type[BaseElement]):
         """ Create a new fish """
 
-        properties = {
-            "name": self.name.value,
-            "species": self.fish_key,
-            "age": self.age_names.index(self.age.value),
-            "variant": self.variants.value,
-        }
+        if not self.name.value == "None":
+            properties = {
+                "name": self.name.value,
+                "species": self.fish_key,
+                "age": self.age_names.index(self.age.value),
+                "variant": self.variants.value,
+            }
 
-        aquarium = self.interface.aquarium
-        aquarium += Fish(parent=aquarium, properties=properties)
+            aquarium = self.interface.aquarium
+            aquarium += Fish(parent=aquarium, properties=properties)
+
+            del self.showcase_fish
+
+        else:
+            self.interface.aquarium += self.showcase_fish
+            del self.showcase_fish.species_data
 
     def run(self):
         key = ""
-        while key not in ["SIGTERM", "ESC"]:
+        while key not in ["ESC", "SIGTERM"]:
             _fish_change = False
             key = getch()
 
@@ -227,6 +247,8 @@ class NewfishDialog(Menu):
                 if self.menu.selected[0] == self.button:
                     break
 
+                self.update_fish()
+
             self.menu.select()
             self.tabbar.select(self.current_index)
             self.fish_key = self.types[self.current_index]
@@ -242,6 +264,12 @@ class InterfaceManager:
     def __init__(self):
         styles.draculite()
         self.aquarium = Aquarium()
+        self.outer = Container()
+        self.outer += self.aquarium
+        self.outer += Label("main tank")
+
+        self.outer.center()
+        self.aquarium.center()
 
         self._loop = True
         self._display_loop = Thread(target=self.display_loop)
@@ -249,11 +277,10 @@ class InterfaceManager:
     def display_loop(self):
         """ Main display loop """
 
-        print(self.aquarium)
+        print(self.outer)
         while self._loop:
             self.aquarium.update()
-            print("\033[H" + str(time()))
-            sleep(1 / 30)
+            sleep(1 / 25)
 
     def getch_loop(self):
         """ Main input loop """
@@ -275,6 +302,14 @@ class InterfaceManager:
                 getch()
                 self.aquarium.pause(0)
 
+            elif key == "CTRL_R":
+                self.aquarium.fish = []
+                self._loop = False
+                self._display_loop.join()
+                self._display_loop = Thread(target=self.display_loop)
+                self._loop = True
+                self.start()
+
     def show(self, menu: Type[Menu]):
         """ Show menu object """
 
@@ -284,7 +319,7 @@ class InterfaceManager:
         menu(self)
 
         wipe()
-        print(self.aquarium)
+        print(self.outer)
         self.aquarium.pause(False)
 
     def start(self):
@@ -293,17 +328,8 @@ class InterfaceManager:
         wipe()
         hide_cursor()
 
-        # x1, y1, x2, y2 = self.aquarium.bounds
-        # from .classes import Position
-        # print(self.aquarium)
-        # print('\033[38;5;1m'+Position(x1,y1).show())
-        # print('\033[38;5;1m'+Position(x2,y2).show())
-        # print('\033[m')
-
         for _ in range(10):
             self.aquarium += Fish(self.aquarium)
-        # self.aquarium += Fish(self.aquarium)
-        # self.aquarium += Fish(self.aquarium)
-        # self.aquarium += Fish(self.aquarium)
+
         self._display_loop.start()
         self.getch_loop()
