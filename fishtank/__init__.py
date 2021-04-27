@@ -10,6 +10,7 @@ An interactive fishtank for your terminal.
 import os
 import sys
 import json
+from typing import Any, Tuple
 
 __version__ = "0.0.0"
 usage_data = f"""\
@@ -33,7 +34,7 @@ del species_file
 
 
 # pylint: disable=protected-access
-def get_caller(depth=1):
+def get_caller(depth: int = 1) -> str:
     """
     Return caller of function with protected methods
 
@@ -51,7 +52,7 @@ def get_caller(depth=1):
     return type(obj).__name__ + "." + method if obj else method
 
 
-def dbg(*args, end: str = "\n") -> None:
+def dbg(*args: Any, end: str = "\n") -> None:
     """ Write information to log file """
 
     if args == tuple():

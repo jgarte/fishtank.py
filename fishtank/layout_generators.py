@@ -25,7 +25,7 @@ from pytermgui import (
 from . import to_local, dbg
 
 
-def generate_newfish_dialog():
+def generate_newfish_dialog() -> None:
     """ Menu for creating a new fish """
 
     cont = Container(width=32, shorten_elements=False)
@@ -82,7 +82,7 @@ def generate_newfish_dialog():
     dump_to_file(cont, to_local("layouts/newfish.ptg"))
 
 
-def generate_input_dialog():
+def generate_input_dialog() -> None:
     """ General dialog containing an InputField """
 
     cont = Container(width=width(), border=lambda: " -")
@@ -100,7 +100,7 @@ def generate_input_dialog():
     dump_to_file(cont, to_local("layouts/input_dialog.ptg"))
 
 
-def generate_info_page():
+def generate_info_page() -> None:
     """ Read-only information display """
 
     cont = Container()
@@ -118,7 +118,7 @@ def generate_info_page():
     dump_to_file(cont, to_local("layouts/info_page.ptg"))
 
 
-def generate(mode: str = "print"):
+def generate(mode: str = "print") -> None:
     """ Run all generators """
 
     if not isdir(to_local("layouts")):

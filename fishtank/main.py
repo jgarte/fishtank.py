@@ -16,7 +16,7 @@ from .layout_generators import generate
 
 
 # pylint: disable=unused-argument
-def exit_program(sig, frame):
+def exit_program() -> None:
     """ Exit program in a clean manner """
 
     hide_cursor(0)
@@ -25,7 +25,7 @@ def exit_program(sig, frame):
 
 
 # pylint: disable=invalid-name
-def main():
+def main() -> None:
     """ main method """
 
     # dbg('generating layouts..')
@@ -36,29 +36,31 @@ def main():
     interface.InterfaceManager().start()
 
     dbg("thats all folks!")
-    exit_program("", "")
+    exit_program()
 
 
-def test_args(short: str, long: str, args: list):
+def test_args(short: str, long: str, args: list[str]) -> bool:
     """ Return if either short or long is in args """
 
     return any(opt in args for opt in [short, long])
 
 
-def cmdline():
+def cmdline() -> None:
     """ Function to handle command line calling """
 
     args = sys.argv[1:]
 
     if len(args) == 0:
-        sys.exit(main())
+        main()
+        sys.exit(0)
 
     elif test_args("-h", "--help", args):
         print(usage_data)
         sys.exit(0)
 
     elif test_args("-g", "--generate-layouts", args):
-        sys.exit(generate(mode="print"))
+        generate(mode="print")
+        sys.exit(0)
 
     else:
         print("not sure what to do with", args)

@@ -41,17 +41,17 @@ class Menu:
         self.setup()
         self.run()
 
-    def setup(self):
+    def setup(self) -> None:
         """ Stub for menu setup """
 
-    def run(self):
+    def run(self) -> None:
         """ Stub for menu run """
 
 
 class NewfishDialog(Menu):
     """ Menu for creating a new ><> """
 
-    def setup(self):
+    def setup(self) -> None:
         """ Create objects & variables """
 
         self.types = list(SPECIES_DATA.keys())
@@ -94,12 +94,12 @@ class NewfishDialog(Menu):
         print(self.menu.center())
 
     # pylint: disable=unused-argument
-    def get_skin(self, depth: int, value: str):
+    def get_skin(self, depth: int, value: str) -> str:
         """ Return skin of currently selected fish species """
 
         return repr(self.showcase_fish)
 
-    def update_fish(self):
+    def update_fish(self) -> None:
         """ Update showcase fish pigment & skin """
 
         fish = self.showcase_fish
@@ -109,7 +109,7 @@ class NewfishDialog(Menu):
         fish.age = self.age_names.index(self.age.value)
         fish.pigment = fish.get_pigment(fish.species_data)
 
-    def change_name(self, caller: Type[BaseElement]):
+    def change_name(self, caller: Type[BaseElement]) -> None:
         """ Dialog to change the name of the fish """
 
         self.menu.wipe()
@@ -139,7 +139,7 @@ class NewfishDialog(Menu):
 
         dialog.wipe()
 
-    def show_info(self, caller: Type[BaseElement]):
+    def show_info(self, caller: Type[BaseElement]) -> None:
         """ Show information (stats) about a fish species """
 
         self.menu.wipe()
@@ -167,7 +167,7 @@ class NewfishDialog(Menu):
                 break
         page.wipe()
 
-    def choose_variant(self, caller: Type[BaseElement]):
+    def choose_variant(self, caller: Type[BaseElement]) -> None:
         """ Allow user to choose from variants """
 
         cont = Container(width=40)
@@ -187,7 +187,7 @@ class NewfishDialog(Menu):
         basic_selection(cont, True)
         self.variants.value = inner.selected[0].real_value
 
-    def choose_age(self, caller: Type[BaseElement]):
+    def choose_age(self, caller: Type[BaseElement]) -> None:
         """ Allow user to choose age """
 
         cont = Container(width=40)
@@ -199,7 +199,7 @@ class NewfishDialog(Menu):
         basic_selection(cont, True)
         self.age.value = cont.selected[0].value
 
-    def create_fish(self, caller: Type[BaseElement]):
+    def create_fish(self, caller: Type[BaseElement]) -> None:
         """ Create a new fish """
 
         if not self.name.value == "None":
@@ -219,7 +219,7 @@ class NewfishDialog(Menu):
             self.interface.aquarium += self.showcase_fish
             del self.showcase_fish.species_data
 
-    def run(self):
+    def run(self) -> None:
         key = ""
         while key not in ["ESC", "SIGTERM"]:
             _fish_change = False
@@ -262,12 +262,12 @@ class NewfishDialog(Menu):
 class FeedingMenu(Menu):
     """ Menu for feeding stuff """
 
-    def setup(self):
+    def setup(self) -> None:
         """ Set up values """
 
         self.pos = Position()
 
-    def select(self):
+    def select(self) -> None:
         """ Show selection menu """
 
         key = ""
@@ -302,12 +302,12 @@ class FeedingMenu(Menu):
             for obj in self.interface.aquarium:
                 obj.show()
 
-            print(self.pos.show())
+            self.pos.show()
 
-    def choose_size(self):
+    def choose_size(self) -> None:
         """ not sure bout this one """
 
-    def finish(self):
+    def finish(self) -> None:
         """ Finalize & add """
 
         aquarium = self.interface.aquarium
@@ -318,7 +318,7 @@ class FeedingMenu(Menu):
         # input()
         aquarium += food
 
-    def run(self):
+    def run(self) -> None:
         """ Run menu """
 
         self.select()
@@ -329,7 +329,7 @@ class FeedingMenu(Menu):
 class InterfaceManager:
     """ Manager class for all interface related operations """
 
-    def __init__(self):
+    def __init__(self) -> None:
         styles.default()
         self.aquarium = Aquarium(_width=width() - 5, _height=height() - 5)
         self.outer = Container()
@@ -342,7 +342,7 @@ class InterfaceManager:
         self._loop = True
         self._display_loop = Thread(target=self.display_loop)
 
-    def display_loop(self):
+    def display_loop(self) -> None:
         """ Main display loop """
 
         # print(self.outer)
@@ -350,7 +350,7 @@ class InterfaceManager:
             self.aquarium.update()
             sleep(1 / 25)
 
-    def getch_loop(self):
+    def getch_loop(self) -> None:
         """ Main input loop """
 
         while self._loop:
@@ -368,7 +368,7 @@ class InterfaceManager:
             elif key == " ":
                 self.aquarium.pause()
                 getch()
-                self.aquarium.pause(0)
+                self.aquarium.pause(True)
 
             elif key == "f":
                 self.aquarium += Food(self.aquarium)
@@ -385,7 +385,7 @@ class InterfaceManager:
             elif key == "CTRL_L":
                 wipe()
 
-    def show(self, menu: Type[Menu]):
+    def show(self, menu: Type[Menu]) -> None:
         """ Show menu object """
 
         wipe()
@@ -396,7 +396,7 @@ class InterfaceManager:
         wipe()
         self.aquarium.pause(False)
 
-    def start(self):
+    def start(self) -> None:
         """ Method that starts Interface """
 
         wipe()

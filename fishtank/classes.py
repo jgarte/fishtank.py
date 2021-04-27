@@ -19,14 +19,14 @@ from pytermgui import Container, BaseElement, padding_label
 
 # pylint: disable=unused-import
 from . import SPECIES_DATA, dbg
-from .enums import Event, AquariumEvent
+from .enums import Event, AquariumEvent, BoundError
 
 
 class Position:
     """ Class for easier & more legible positions """
 
     # pylint: disable=invalid-name
-    def __init__(self, x: int = 0, y: int = 0, xy: list[int] = None):
+    def __init__(self, x: int = 0, y: int = 0, xy: Optional[list[int]] = None):
         if xy:
             self.x, self.y = xy
         else:
@@ -81,8 +81,11 @@ class Position:
 
         print(f"\033[{self.y};{self.x}H ")
 
-    def distance_to(self, other) -> float:
+    def distance_to(self, other: object) -> float:
         """ Return distance from self to other """
+
+        if not isinstance(other, Position):
+            raise NotImplementedError()
 
         return sqrt((other.x - self.x) ** 2 + (other.y - self.y) ** 2)
 
@@ -107,7 +110,7 @@ class Fish:
         self,
         parent: Aquarium,
         keep_data: Optional[bool] = False,
-        properties: Optional[dict] = None,
+        properties: Optional[dict[str, Any]] = None,
     ):
         """ Set up instance """
 
@@ -126,13 +129,17 @@ class Fish:
         self.parent: Aquarium = parent
         self.species: str = ""
         self.variant: str = ""
+        self.speed: int = 1
+        self.skin: str = ""
+        self.name: str
+        self.age: int = 1
+
         self.pigment: list[int] = []
         self.stages: list[str] = []
         self.path: list[Position] = []
-        self.speed: int = 1
-        self.age: int = 1
-        self.skin: str = ""
+
         self._food: Optional[Food] = None
+        self._pos: Position
 
         # set up properties dict
         for key, value in default_properties.items():
@@ -180,14 +187,12 @@ class Fish:
 
         # 0 -> left, 1 -> right
         self._heading = 0
-        self._pos = None
-
         self.pos = Position(xy=properties["pos"])
 
         repr(self)
 
     @staticmethod
-    def _reverse_skin(skin) -> str:
+    def _reverse_skin(skin: str) -> str:
         """ Return char by char reversed version of skin """
 
         rev = ""
@@ -212,19 +217,26 @@ class Fish:
         return x, y, x + real_length(self.skin), y
 
     @property
-    def pos(self):
+    def pos(self) -> Position:
         """ Getter of _pos """
 
         return self._pos
 
     @pos.setter
-    def pos(self, new):
+    def pos(self, new: Position) -> None:
         """ Update the fish's position """
 
         self._pos = new
 
-    def __repr__(self) -> str:
-        """ __repr__ method that handles pigmenting """
+    def __repr__(self) -> Any:
+        """
+        __repr__ method that handles pigmenting
+
+        Note:
+            pytermgui.gradient() and this function
+            should return str, and will do so once
+            I get around to the rewrite.
+        """
 
         _skin = self.stages[self.age]
         self.skin = _skin
@@ -239,14 +251,14 @@ class Fish:
 
         return gradient(skin, pigment)
 
-    def _load_from(self, data: dict) -> None:
+    def _load_from(self, data: dict[str, Any]) -> None:
         """ Set self data from data """
 
         for key, value in data.items():
             if not key == "specials":
                 setattr(self, key, value)
 
-    def get_pigment(self, data: dict) -> list[int]:
+    def get_pigment(self, data: dict[str, Any]) -> list[int]:
         """ Get pigmentation using self.variant and data """
 
         variant_data = data["variants"].get(self.variant)
@@ -359,7 +371,7 @@ class Fish:
 
         return self.pos
 
-    def notify(self, event: Event, data: Optional[Any]):
+    def notify(self, event: Event, data: Optional[Any]) -> None:
         """ Notify fish of some event """
 
         if event == AquariumEvent.FOOD_DESTROYED:
@@ -393,7 +405,7 @@ class Food:
         """ Initialize object """
 
         self.skin: str = "#"
-        self.path: list = []
+        self.path: list[Position] = []
         self.counter: int = 0
         self._is_stopped: bool = False
 
@@ -405,18 +417,18 @@ class Food:
         self.health = health
         self.parent = parent
 
-    def stop(self):
+    def stop(self) -> None:
         """ Stop updates of object """
 
         self._is_stopped = True
 
-    def destroy(self):
+    def destroy(self) -> None:
         """ Remove self from parent """
 
         self.wipe()
         self.parent.notify(AquariumEvent.FOOD_DESTROYED, self)
 
-    def update(self):
+    def update(self) -> None:
         """ Update position & path"""
 
         if self.health <= 0:
@@ -440,27 +452,29 @@ class Food:
             error = self.parent.bound_error(self.pos)
             self.pos -= change
 
-            if "y" in error:
+            if error is BoundError.XY or error is BoundError.Y:
                 self.stop()
 
-    def wipe(self):
+    def wipe(self) -> None:
         """ Clear char at pos """
 
         posx, posy = self.pos
         print(f"\033[{posy};{posx}H" + real_length(self.skin) * " ")
 
-    def show(self):
+    def show(self) -> None:
         """ Print self to pos """
 
         posx, posy = self.pos
         print(f"\033[{posy};{posx}H" + self.skin)
 
 
-class Aquarium(Container):
+class Aquarium(Container):  # type: ignore[misc]
     """ An object to store & update fish """
 
     # pylint: disable=invalid-name
-    def __init__(self, pos: list[int] = None, _width: int = 70, _height: int = 25):
+    def __init__(
+        self, pos: Optional[list[int]] = None, _width: int = 70, _height: int = 25
+    ):
         """ Set up object """
 
         super().__init__(width=_width, height=_height)
@@ -540,11 +554,14 @@ class Aquarium(Container):
 
         return Position(randint(startx + 1, endx - 1), randint(starty + 1, endy - 1))
 
-    def notify(self, event: AquariumEvent, data) -> None:
+    def notify(self, event: AquariumEvent, data: Optional[Any] = None) -> None:
         """ Notify Aquarium of events """
 
         # a food particle has been destroyed
         if event is AquariumEvent.FOOD_DESTROYED:
+            if not isinstance(data, Food):
+                return
+
             self.objects.remove(data)
             for f in self.fish():
                 f.notify(event, data)
@@ -575,7 +592,7 @@ class Aquarium(Container):
         startx, starty, endx, endy = self.bounds
         return startx < x < endx and starty < y < endy
 
-    def bound_error(self, pos: Position) -> Union[str, None]:
+    def bound_error(self, pos: Position) -> Optional[BoundError]:
         """ Return which coord is not in bound """
 
         if self.contains(pos):
@@ -588,12 +605,12 @@ class Aquarium(Container):
         y_error = not starty < y < endy
 
         if x_error and y_error:
-            return "xy"
+            return BoundError.XY
 
         if x_error:
-            return "x"
+            return BoundError.X
 
-        return "y"
+        return BoundError.Y
 
     def move(self, pos: list[int], _wipe: bool = False) -> Aquarium:
         """ Implement move method using Position-s """
@@ -613,7 +630,7 @@ class Aquarium(Container):
 
         return self.target_pos
 
-    def update(self):
+    def update(self) -> None:
         """ Update elements in self.objects"""
 
         if self._is_paused:
