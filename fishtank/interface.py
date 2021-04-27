@@ -310,6 +310,14 @@ class FeedingMenu(Menu):
     def finish(self):
         """ Finalize & add """
 
+        aquarium = self.interface.aquarium
+        food = Food(aquarium, pos=self.pos)
+        # food.pos = self.pos
+
+        # food.pos.show()
+        # input()
+        aquarium += food
+
     def run(self):
         """ Run menu """
 
@@ -394,7 +402,7 @@ class InterfaceManager:
         wipe()
         hide_cursor()
 
-        for _ in range(10):
+        for _ in range(20):
             self.aquarium += Fish(self.aquarium)
 
         self._display_loop.start()

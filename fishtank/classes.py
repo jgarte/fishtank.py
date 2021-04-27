@@ -12,13 +12,14 @@ from __future__ import annotations
 # pylint: disable=no-name-in-module
 from math import sqrt
 from random import randint
-from typing import Union, Generator, Optional
+from typing import Union, Generator, Optional, Any
 
 from pytermgui import gradient, real_length, clean_ansi
 from pytermgui import Container, BaseElement, padding_label
 
 # pylint: disable=unused-import
 from . import SPECIES_DATA, dbg
+from .enums import Event, AquariumEvent
 
 
 class Position:
@@ -70,10 +71,10 @@ class Position:
     def __bool__(self) -> bool:
         return True
 
-    def show(self) -> str:
-        """ Return 'x' at the position of self """
+    def show(self) -> None:
+        """ Print self """
 
-        return f"\033[{self.y};{self.x}Hx"
+        print(f"\033[{self.y};{self.x}Hx")
 
     def wipe(self) -> None:
         """ Wipe character at self.x & self.y """
@@ -131,6 +132,7 @@ class Fish:
         self.speed: int = 1
         self.age: int = 1
         self.skin: str = ""
+        self._food: Optional[Food] = None
 
         # set up properties dict
         for key, value in default_properties.items():
@@ -202,22 +204,6 @@ class Fish:
 
         return rev
 
-    def get_pigment(self, data: dict) -> list[int]:
-        """ Get pigmentation using self.variant and data """
-
-        variant_data = data["variants"].get(self.variant)
-        if variant_data:
-            pigment = []
-            available = variant_data.get("pigment")
-            length = max(len(clean_ansi(l)) for l in self.stages)
-
-            for _ in range(length):
-                pigment.append(available[randint(0, len(available) - 1)])
-
-            return pigment
-
-        return self.pigment
-
     @property
     def bounds(self) -> tuple[int, int, int, int]:
         """ Return boundaries of object """
@@ -259,6 +245,22 @@ class Fish:
         for key, value in data.items():
             if not key == "specials":
                 setattr(self, key, value)
+
+    def get_pigment(self, data: dict) -> list[int]:
+        """ Get pigmentation using self.variant and data """
+
+        variant_data = data["variants"].get(self.variant)
+        if variant_data:
+            pigment = []
+            available = variant_data.get("pigment")
+            length = max(len(clean_ansi(l)) for l in self.stages)
+
+            for _ in range(length):
+                pigment.append(available[randint(0, len(available) - 1)])
+
+            return pigment
+
+        return self.pigment
 
     def get_path(self, pos: Position) -> list[Position]:
         """ Get position to pos, return it as a list of Position-s """
@@ -313,16 +315,40 @@ class Fish:
     def update(self) -> Position:
         """ Do next position update """
 
-        if len(self.path) > 0:
-            # try to avoid moving to a position already occupied
-            # fish_at_pos = self.parent.fish_at(self.pos)
-            # if fish_at_pos and fish_at_pos is not self:
-            #    return self.pos
+        # try to find food candidates
+        if not self._food:
+            candidates = []
+            for food in self.parent.foods():
+                if food.health > 0:
+                    distance = self.pos.distance_to(food.pos)
+                    candidates.append((distance, food))
 
+            # only assign when there is a food available
+            if len(candidates) > 0:
+                if randint(0, 3) == 1:
+                    candidates.sort(key=lambda value: value[0])
+                    self._food = candidates[0][1]
+
+        else:
+            if self.pos.distance_to(self._food.pos) < 2:
+                self._food.health -= 1
+
+        if len(self.path) > 0:
             self.pos = self.path[0]
+
+            if self._food:
+                # if self._food._is_destroyed:
+                #    self._food = None
+                #    self.update()
+                #    return
+
+                self.path = self.get_path(self._food.pos)
+
             self.path.pop(0)
 
         else:
+            self._food = None
+
             if randint(0, 10) < 4:
                 self.path += [self.pos] * randint(2, 5)
 
@@ -332,6 +358,18 @@ class Fish:
                 self.update()
 
         return self.pos
+
+    def notify(self, event: Event, data: Optional[Any]):
+        """ Notify fish of some event """
+
+        if event == AquariumEvent.FOOD_DESTROYED:
+            if data is not self._food:
+                return
+
+            if randint(0, 3) < 2:
+                self.path = []
+                self._food = None
+                self.update()
 
     def wipe(self) -> None:
         """ Wipe fish's skin at its current position """
@@ -349,7 +387,9 @@ class Fish:
 class Food:
     """ fud """
 
-    def __init__(self, parent: Aquarium, health: int = 5):
+    def __init__(
+        self, parent: Aquarium, health: int = 5, pos: Optional[Position] = None
+    ):
         """ Initialize object """
 
         self.skin: str = "#"
@@ -357,7 +397,11 @@ class Food:
         self.counter: int = 0
         self._is_stopped: bool = False
 
-        self.pos = Position()
+        if pos is None:
+            self.pos = Position()
+        else:
+            self.pos = pos
+
         self.health = health
         self.parent = parent
 
@@ -366,30 +410,38 @@ class Food:
 
         self._is_stopped = True
 
+    def destroy(self):
+        """ Remove self from parent """
+
+        self.wipe()
+        self.parent.notify(AquariumEvent.FOOD_DESTROYED, self)
+
     def update(self):
         """ Update position & path"""
+
+        if self.health <= 0:
+            self.destroy()
 
         if self._is_stopped:
             return
 
         # only update on every second frame
         self.counter += 1
-        if self.counter == 2:
-            self.counter = 0
+        if self.counter < 3:
             return
+
+        self.counter = 0
 
         x_change = randint(-1, 1)
         change = Position(x_change, 1)
         self.pos += change
 
         if not self.parent.contains(self.pos):
-            if "y" in self.parent.bound_error(self.pos):
-                self.stop()
-            else:
-                self.pos -= change
+            error = self.parent.bound_error(self.pos)
+            self.pos -= change
 
-        if self.health <= 0:
-            self.stop()
+            if "y" in error:
+                self.stop()
 
     def wipe(self):
         """ Clear char at pos """
@@ -439,6 +491,20 @@ class Aquarium(Container):
         x, y = self.pos
         return x + 1, y + 1, x + self.width + 1, y + self.height
 
+    def foods(self) -> Generator[Food, None, None]:
+        """ Iterate through foods """
+
+        for obj in self.objects:
+            if isinstance(obj, Food):
+                yield obj
+
+    def fish(self) -> Generator[Fish, None, None]:
+        """ Iterate through fish """
+
+        for obj in self.objects:
+            if isinstance(obj, Fish):
+                yield obj
+
     def __iter__(self) -> Generator[Union[Fish, Food], None, None]:
         """ Iterate through fish children """
 
@@ -473,6 +539,15 @@ class Aquarium(Container):
             endx -= real_length(obj.skin)
 
         return Position(randint(startx + 1, endx - 1), randint(starty + 1, endy - 1))
+
+    def notify(self, event: AquariumEvent, data) -> None:
+        """ Notify Aquarium of events """
+
+        # a food particle has been destroyed
+        if event is AquariumEvent.FOOD_DESTROYED:
+            self.objects.remove(data)
+            for f in self.fish():
+                f.notify(event, data)
 
     def pause(self, value: bool = True) -> None:
         """ Pause updates """
