@@ -9,6 +9,7 @@ File containing most classes.
 
 from __future__ import annotations
 
+# this import should fail according to pylint, but only on macos.
 # pylint: disable=no-name-in-module
 from math import sqrt
 from random import randint
@@ -17,14 +18,16 @@ from typing import Union, Generator, Optional, Any
 from pytermgui import gradient, real_length, clean_ansi
 from pytermgui import Container, BaseElement, padding_label
 
+# `dbg` is usually not used in pushed code, but is often called  otherwise.
 # pylint: disable=unused-import
 from . import SPECIES_DATA, dbg
-from .enums import Event, AquariumEvent, BoundError
+from .enums import Event, AquariumEvent, BoundaryError
 
 
 class Position:
     """ Class for easier & more legible positions """
 
+    # having variables named x and y makes most sense
     # pylint: disable=invalid-name
     def __init__(self, x: int = 0, y: int = 0, xy: Optional[list[int]] = None):
         if xy:
@@ -90,6 +93,64 @@ class Position:
         return sqrt((other.x - self.x) ** 2 + (other.y - self.y) ** 2)
 
 
+class Boundary:
+    """ Boundary made up by two Position objects, non-inclusive of borders """
+
+    def __init__(self, pos1: Position, pos2: Position) -> None:
+        """ Initialize object """
+
+        self.start = pos1
+        self.end = pos2
+
+    def __iter__(self) -> Generator[int, None, None]:
+        """ Iterate start and end positions """
+
+        for pos in [self.start, self.end]:
+            for coord in pos:
+                yield coord
+
+    def _contains_coordinates(self, other: Position) -> bool:
+        """ Helper to get if self contains other """
+
+        error = self.error(other)
+
+        if error is None:
+            return True
+
+        return False
+
+    def error(self, other: Position) -> Optional[BoundaryError]:
+        """ Get BoundaryError from other in self"""
+
+        startx, starty = self.start
+        endx, endy = self.end
+
+        otherx, othery = other
+
+        x_error = not startx < otherx < endx
+        y_error = not starty < othery < endy
+
+        if not x_error and not y_error:
+            return None
+
+        if x_error and y_error:
+            return BoundaryError.XY
+
+        if x_error:
+            return BoundaryError.X
+
+        return BoundaryError.Y
+
+    def contains(self, other: Union[Boundary, Position]) -> bool:
+        """ Return whether self contains other """
+
+        if isinstance(other, Position):
+            return self._contains_coordinates(other)
+
+        pos1, pos2 = other.start, other.end
+        return self._contains_coordinates(pos1) and self._contains_coordinates(pos2)
+
+
 class Fish:
     r"""
     <>< Fish class ><>
@@ -105,7 +166,8 @@ class Fish:
     - Aquarium()
     """
 
-    # pylint: disable=too-many-instance-attributes, invalid-name
+    # it makes sense for this class to have as many attributes as it does.
+    # pylint: disable=too-many-instance-attributes
     def __init__(
         self,
         parent: Aquarium,
@@ -195,26 +257,26 @@ class Fish:
     def _reverse_skin(skin: str) -> str:
         """ Return char by char reversed version of skin """
 
-        rev = ""
+        reversed_skin = ""
         reversible = ["<>", "[]", "{}", "()", "/\\", "db", "qp"]
-        for c in reversed(skin):
-            for r in reversible:
-                if c in r:
-                    new = r[r.index(c) - 1]
+        for char in reversed(skin):
+            for rev in reversible:
+                if char in rev:
+                    new = rev[rev.index(char) - 1]
                     break
             else:
-                new = c
+                new = char
 
-            rev += new
+            reversed_skin += new
 
-        return rev
+        return reversed_skin
 
     @property
     def bounds(self) -> tuple[int, int, int, int]:
         """ Return boundaries of object """
 
-        x, y = self.pos
-        return x, y, x + real_length(self.skin), y
+        posx, posy = self.pos
+        return posx, posy, posx + real_length(self.skin), posy
 
     @property
     def pos(self) -> Position:
@@ -258,6 +320,22 @@ class Fish:
             if not key == "specials":
                 setattr(self, key, value)
 
+    def _position_valid(self, pos: Position) -> bool:
+        if self.parent is None:
+            return False
+
+        posx, posy = pos
+        start_pos = Position(posx, posy)
+        end_pos = Position(posx + real_length(self.skin), posy)
+
+        start_error = self.parent.bounds.error(start_pos)
+        end_error = self.parent.bounds.error(end_pos)
+
+        if start_error is None and end_error is None:
+            return True
+
+        return False
+
     def get_pigment(self, data: dict[str, Any]) -> list[int]:
         """ Get pigmentation using self.variant and data """
 
@@ -277,50 +355,44 @@ class Fish:
     def get_path(self, pos: Position) -> list[Position]:
         """ Get position to pos, return it as a list of Position-s """
 
-        x1, y1 = self.pos
-        x2, y2 = pos
+        startx, starty = self.pos
+        endiffx, endiffy = pos
 
-        if x1 > x2:
+        if startx > endiffx:
             self._heading = 1
         else:
             self._heading = 0
 
         # x dif, x direction
-        dx = abs(x2 - x1)
-        sx = 1 if x1 < x2 else -1
+        diffx = abs(endiffx - startx)
+        intbuff_x = 1 if startx < endiffx else -1
 
         # y dif, y direction
-        dy = -abs(y2 - y1)
-        sy = 1 if y1 < y2 else -1
+        diffy = -abs(endiffy - starty)
+        intbuff_y = 1 if starty < endiffy else -1
 
         # error
-        error = dx + dy
+        error = diffx + diffy
 
         path = []
         while True:
-            pos = Position(x1, y1)
-            skin_end = Position(x1 + real_length(self.skin), y1)
-
-            if (
-                self.parent is not None
-                and not self.parent.contains(pos)
-                or not self.parent.contains(skin_end)
-            ):
+            pos = Position(startx, starty)
+            if not self._position_valid(pos):
                 break
 
             path.append(pos)
-            if x1 == x2 and y1 == y2:
+            if startx == endiffx and starty == endiffy:
                 break
 
             error2 = 2 * error
 
-            if error2 >= dy:
-                error += dy
-                x1 += sx
+            if error2 >= diffy:
+                error += diffy
+                startx += intbuff_x
 
-            if error2 <= dx:
-                error += dx
-                y1 += sy
+            if error2 <= diffx:
+                error += diffx
+                starty += intbuff_y
 
         return path
 
@@ -349,24 +421,24 @@ class Fish:
             self.pos = self.path[0]
 
             if self._food:
-                # if self._food._is_destroyed:
-                #    self._food = None
-                #    self.update()
-                #    return
-
                 self.path = self.get_path(self._food.pos)
 
-            self.path.pop(0)
+            if len(self.path) > 0:
+                self.path.pop(0)
 
         else:
-            self._food = None
 
             if randint(0, 10) < 4:
                 self.path += [self.pos] * randint(2, 5)
 
             else:
                 self.path = self.get_path(self.parent.get_next_position())
-                self.parent.target_pos = None
+
+                if self._food is None:
+                    self.parent.notify(AquariumEvent.TARGET_REACHED, self)
+                else:
+                    self._food = None
+
                 self.update()
 
         return self.pos
@@ -386,19 +458,21 @@ class Fish:
     def wipe(self) -> None:
         """ Wipe fish's skin at its current position """
 
-        x, y = self.pos
-        print(f"\033[{y};{x}H" + real_length(self.skin) * " ")
+        posx, posy = self.pos
+        print(f"\033[{posy};{posx}H" + real_length(self.skin) * " ")
 
     def show(self) -> None:
         """ Show repr(self) at self.pos """
 
-        x, y = self.pos
-        print(f"\033[{y};{x}H" + repr(self))
+        posx, posy = self.pos
+        print(f"\033[{posy};{posx}H" + repr(self))
 
 
 class Food:
     """ fud """
 
+    # it makes sense for this class to have this many attributes.
+    # pylint: disable=too-many-instance-attributes
     def __init__(
         self, parent: Aquarium, health: int = 5, pos: Optional[Position] = None
     ):
@@ -408,6 +482,7 @@ class Food:
         self.path: list[Position] = []
         self.counter: int = 0
         self._is_stopped: bool = False
+        self._idle_framecount: int = 0
 
         if pos is None:
             self.pos = Position()
@@ -431,10 +506,12 @@ class Food:
     def update(self) -> None:
         """ Update position & path"""
 
-        if self.health <= 0:
+        # destroy at 0 health of when the object has been idle for 10 seconds
+        if self.health <= 0 or self._idle_framecount >= self.parent.fps * 10:
             self.destroy()
 
         if self._is_stopped:
+            self._idle_framecount += 1
             return
 
         # only update on every second frame
@@ -445,15 +522,23 @@ class Food:
         self.counter = 0
 
         x_change = randint(-1, 1)
-        change = Position(x_change, 1)
-        self.pos += change
 
-        if not self.parent.contains(self.pos):
-            error = self.parent.bound_error(self.pos)
-            self.pos -= change
+        # this is a clumsy call
+        target_pos = self.pos + Position(x_change, 1)
+        error = self.parent.bounds.error(target_pos)
 
-            if error is BoundError.XY or error is BoundError.Y:
-                self.stop()
+        # only move down if x is out of bounds
+        if error is BoundaryError.X:
+            self.pos += Position(0, 1)
+            return
+
+        # stop moving if y is out of bounds
+        if error is BoundaryError.XY or error is BoundaryError.Y:
+            self.stop()
+            return
+
+        # add target otherwise
+        self.pos = target_pos
 
     def wipe(self) -> None:
         """ Clear char at pos """
@@ -468,6 +553,7 @@ class Food:
         print(f"\033[{posy};{posx}H" + self.skin)
 
 
+# as long as pytermgui is not type this error would occur.
 class Aquarium(Container):  # type: ignore[misc]
     """ An object to store & update fish """
 
@@ -478,7 +564,14 @@ class Aquarium(Container):  # type: ignore[misc]
         """ Set up object """
 
         super().__init__(width=_width, height=_height)
+
+        self.fps: int
         self.objects: list[Union[Fish, Food]] = []
+        self.target_pos: Union[Position, None] = None
+        self.bounds: Boundary = self._get_bounds()
+
+        self._is_paused: bool = False
+        self._target_reached: list[Fish] = []
 
         if pos is None:
             pos = [0, 0]
@@ -495,15 +588,14 @@ class Aquarium(Container):  # type: ignore[misc]
         repr(self)
         self.center()
 
-        self.target_pos: Union[Position, None] = None
-        self._is_paused = False
-
-    @property
-    def bounds(self) -> tuple[int, int, int, int]:
+    def _get_bounds(self) -> Boundary:
         """ Return boundaries of object """
 
         x, y = self.pos
-        return x + 1, y + 1, x + self.width + 1, y + self.height
+        start = Position(x + 1, y + 1)
+        end = Position(x + self.width + 1, y + self.height)
+
+        return Boundary(start, end)
 
     def foods(self) -> Generator[Food, None, None]:
         """ Iterate through foods """
@@ -548,7 +640,7 @@ class Aquarium(Container):  # type: ignore[misc]
 
         startx, starty, endx, endy = self.bounds
 
-        if obj:
+        if obj is not None:
             startx += real_length(obj.skin)
             endx -= real_length(obj.skin)
 
@@ -557,14 +649,29 @@ class Aquarium(Container):  # type: ignore[misc]
     def notify(self, event: AquariumEvent, data: Optional[Any] = None) -> None:
         """ Notify Aquarium of events """
 
-        # a food particle has been destroyed
         if event is AquariumEvent.FOOD_DESTROYED:
+            # NOTE: this should never be raised, but even then
+            #       should be limited by an option
             if not isinstance(data, Food):
-                return
+                raise Exception(f"Object {data} is not food! How did this happen?")
 
             self.objects.remove(data)
             for f in self.fish():
                 f.notify(event, data)
+
+        elif event is AquariumEvent.TARGET_REACHED:
+            if not isinstance(data, Fish):
+                raise Exception(f"Object {data} is not fish! How did this happen?")
+
+            # this is not working the way it should be
+            # if data in self._target_reached:
+            #    return
+
+            # self._target_reached.append(data)
+            # reached_fish = len(self._target_reached)
+            # total_fish = len(list(self.fish()))
+
+            self.target_pos = None
 
     def pause(self, value: bool = True) -> None:
         """ Pause updates """
@@ -588,29 +695,7 @@ class Aquarium(Container):  # type: ignore[misc]
     def contains(self, pos: Position) -> bool:
         """ Return if position is contained within self """
 
-        x, y = pos
-        startx, starty, endx, endy = self.bounds
-        return startx < x < endx and starty < y < endy
-
-    def bound_error(self, pos: Position) -> Optional[BoundError]:
-        """ Return which coord is not in bound """
-
-        if self.contains(pos):
-            return None
-
-        x, y = pos
-        startx, starty, endx, endy = self.bounds
-
-        x_error = not startx < x < endx
-        y_error = not starty < y < endy
-
-        if x_error and y_error:
-            return BoundError.XY
-
-        if x_error:
-            return BoundError.X
-
-        return BoundError.Y
+        return self.bounds.contains(pos)
 
     def move(self, pos: list[int], _wipe: bool = False) -> Aquarium:
         """ Implement move method using Position-s """

@@ -18,6 +18,7 @@ class AquariumEvent(Event):
     """ Enum for Aquarium().notify() calls """
 
     FOOD_DESTROYED = auto()
+    TARGET_REACHED = auto()
 
 
 class FishEvent(Event):
@@ -31,7 +32,7 @@ class FishEvent(Event):
     """
 
 
-class BoundError(Enum):
+class BoundaryError(Enum):
     """
     Enum currently limited to Aquarium.bound_error()
     TODO:

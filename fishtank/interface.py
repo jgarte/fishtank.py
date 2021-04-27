@@ -312,10 +312,8 @@ class FeedingMenu(Menu):
 
         aquarium = self.interface.aquarium
         food = Food(aquarium, pos=self.pos)
-        # food.pos = self.pos
+        food.pos = self.pos
 
-        # food.pos.show()
-        # input()
         aquarium += food
 
     def run(self) -> None:
@@ -331,21 +329,17 @@ class InterfaceManager:
 
     def __init__(self) -> None:
         styles.default()
-        self.aquarium = Aquarium(_width=width() - 5, _height=height() - 5)
-        self.outer = Container()
-        self.outer += self.aquarium
-        self.outer += Label("main tank")
 
-        self.outer.center()
+        self.aquarium: Aquarium = Aquarium(_width=width() - 5, _height=height())
         self.aquarium.center()
 
+        self.aquarium.fps = 25
         self._loop = True
         self._display_loop = Thread(target=self.display_loop)
 
     def display_loop(self) -> None:
         """ Main display loop """
 
-        # print(self.outer)
         while self._loop:
             self.aquarium.update()
             sleep(1 / 25)
@@ -372,6 +366,7 @@ class InterfaceManager:
 
             elif key == "f":
                 self.aquarium += Food(self.aquarium)
+                # currently unused
                 # self.show(FeedingMenu)
 
             elif key == "CTRL_R":
