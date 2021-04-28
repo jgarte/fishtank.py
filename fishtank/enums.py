@@ -4,22 +4,21 @@ fishtank.enums
 author: bczsalba
 
 
-Enum classes for the program.
+Enum classes (and types) for the program.
 """
 
 from enum import Enum, auto
+from typing import TypedDict
 
 
 class Event(Enum):
     """ Enum class that *Event derive from. """
-
 
 class AquariumEvent(Event):
     """ Enum for Aquarium().notify() calls """
 
     FOOD_DESTROYED = auto()
     TARGET_REACHED = auto()
-
 
 class FishEvent(Event):
     """
@@ -31,6 +30,12 @@ class FishEvent(Event):
         new food.
     """
 
+class FishType(Enum):
+    """ Types for fish """
+
+    BOTTOM_DWELLER = auto()
+    MID_WATER = auto()
+    TOP_DWELLER = auto()
 
 class BoundaryError(Enum):
     """
@@ -42,3 +47,20 @@ class BoundaryError(Enum):
     X = auto()
     Y = auto()
     XY = auto()
+
+class FishProperties(TypedDict):
+    """ 
+    Fish property dictionary 
+
+    note: pos should be of type Position, 
+    but that causes circular imports. we 
+    should figure that out.
+    """
+
+    pos: list[int]
+    stages: list[str]
+    type: FishType
+    species: str
+    variant: str
+    name: str
+    age: int

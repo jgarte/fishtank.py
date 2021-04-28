@@ -1,7 +1,7 @@
 {
     "Molly": {
         "stages": [">->","><'>",">-<'>"],
-        "age": 1,
+        "type": "mid_water",
         "speed": 3,
         "pigment": [242],
         "variants": {
@@ -100,7 +100,7 @@
     },
     "Guppy": {
         "stages": [">=","]=>",")=>"],
-        "age": 0,
+        "type": "mid_water",
         "speed": 4,
         "pigment": [141],
         "variants": {
@@ -126,5 +126,17 @@
             }
         },
         "specials": {}
+    },
+    "Corydoras": {
+        "stages": [">,",">,-",">=,>"],
+        "type": "bottom_dweller",
+        "pigment": [232, 251, 251, 232],
+        "variants": {
+            "panda": {
+                "chance": 100,
+                "dominance": 100,
+                "pigment": [232, 252, 252, 232]
+            }
+        }
     }
 }

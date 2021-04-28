@@ -13,7 +13,7 @@ from __future__ import annotations
 # pylint: disable=no-name-in-module
 from math import sqrt
 from random import randint
-from typing import Union, Generator, Optional, Any
+from typing import Union, Generator, Optional, Any, TypedDict
 
 from pytermgui import gradient, real_length, clean_ansi
 from pytermgui import Container, BaseElement, padding_label
@@ -21,7 +21,8 @@ from pytermgui import Container, BaseElement, padding_label
 # `dbg` is usually not used in pushed code, but is often called  otherwise.
 # pylint: disable=unused-import
 from . import SPECIES_DATA, dbg
-from .enums import Event, AquariumEvent, BoundaryError
+from .enums import Event, AquariumEvent, BoundaryError, FishType, FishProperties
+
 
 
 class Position:
@@ -119,6 +120,12 @@ class Boundary:
 
         return False
 
+    def positions(self) -> Generator[Position, None, None]:
+        """ Iterate positions """
+
+        for pos in self.start, self.end:
+            yield pos
+
     def error(self, other: Position) -> Optional[BoundaryError]:
         """ Get BoundaryError from other in self"""
 
@@ -168,91 +175,35 @@ class Fish:
 
     # it makes sense for this class to have as many attributes as it does.
     # pylint: disable=too-many-instance-attributes
-    def __init__(
-        self,
-        parent: Aquarium,
-        keep_data: Optional[bool] = False,
-        properties: Optional[dict[str, Any]] = None,
-    ):
+    def __init__(self, parent: Aquarium, properties: FishProperties):
         """ Set up instance """
 
-        default_properties = {
-            "species": "Molly",
-            "variant": None,
-            "name": None,
-            "pos": [0, 0],
-            "age": 0,
-        }
-
-        if properties is None:
-            properties = {}
-
-        # set up default values that are set during _load_from, so pylint doesn't yell at us.
-        self.parent: Aquarium = parent
-        self.species: str = ""
-        self.variant: str = ""
-        self.speed: int = 1
-        self.skin: str = ""
-        self.name: str
-        self.age: int = 1
-
-        self.pigment: list[int] = []
-        self.stages: list[str] = []
         self.path: list[Position] = []
-
+        self.stages: list[str]
+        self.pigment: list[int] = []
+        self.variant: str
+        self.skin: str = ''
+        self.age: int
         self._food: Optional[Food] = None
-        self._pos: Position
+        self._heading: int = 0
 
-        # set up properties dict
-        for key, value in default_properties.items():
-            if not key in properties.keys():
-                properties[key] = value
+        self.parent = parent
+        self._set_properties(properties)
+        self.pigment = self.get_pigment()
 
-        # load default properties
-        _species_data = SPECIES_DATA.get(properties.get("species"))
-        self._load_from(_species_data)
+    def _set_properties(self, properties: FishProperties) -> None:
+        for key, value in properties.items():
+            if key == "pos":
+                # this is a no-case, but mypy complains
+                if not isinstance(value, list):
+                    raise NotImplementedError()
 
-        # load given property overwrites
-        self._load_from(properties)
+                posx, posy = value
+                value = Position(posx, posy)
 
-        # set variant to random if not given
-        if not self.variant:
-            variants = _species_data["variants"]
-            if isinstance(variants, dict):
-                number = randint(0, 100)
+            setattr(self, key, value)
 
-                for name, value in variants.items():
-                    if not isinstance(value, dict):
-                        continue
-
-                    if number in range(value["chance"]):
-                        self.variant = name
-                        break
-
-                del variants
-
-        # get pigmentation
-        self.pigment = self.get_pigment(_species_data)
-
-        # assign overwrites if name given
-        if properties["name"]:
-            special_data = _species_data["specials"].get(properties["name"])
-
-            if special_data:
-                self._load_from(special_data)
-
-        # delete/store unneeded data
-        if keep_data:
-            self.species_data = _species_data
-        else:
-            del _species_data
-
-        # 0 -> left, 1 -> right
-        self._heading = 0
-        self.pos = Position(xy=properties["pos"])
-
-        repr(self)
-
+    
     @staticmethod
     def _reverse_skin(skin: str) -> str:
         """ Return char by char reversed version of skin """
@@ -336,10 +287,10 @@ class Fish:
 
         return False
 
-    def get_pigment(self, data: dict[str, Any]) -> list[int]:
-        """ Get pigmentation using self.variant and data """
+    def get_pigment(self) -> list[int]:
+        """ Get pigmentation using self.variant"""
 
-        variant_data = data["variants"].get(self.variant)
+        variant_data = SPECIES_DATA[self.species]["variants"].get(self.variant)
         if variant_data:
             pigment = []
             available = variant_data.get("pigment")

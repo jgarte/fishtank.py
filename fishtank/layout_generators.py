@@ -11,7 +11,7 @@ It is run at every startup, but can be called manually: `fishtank --generate-lay
 
 from os import mkdir
 from os.path import abspath, isdir
-from typing import Callable
+from typing import Callable, Any
 
 from pytermgui.utils import width
 from pytermgui import (
@@ -119,7 +119,7 @@ def generate_info_page() -> None:
     dump_to_file(cont, to_local("layouts/info_page.ptg"))
 
 
-def generate(output: Callable = print) -> None:
+def generate(output: Callable[..., Any] = print) -> None:
     """ Run all generators """
 
     if not isdir(to_local("layouts")):

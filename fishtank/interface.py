@@ -29,6 +29,7 @@ from pytermgui.utils import keys, basic_selection, hide_cursor, wipe, width, hei
 
 from . import SPECIES_DATA, to_local, styles
 from .classes import Fish, Aquarium, Position, Food
+from .enums import FishProperties, FishType
 
 
 class Menu:
@@ -48,12 +49,15 @@ class Menu:
         """ Stub for menu run """
 
 
+# pylint: disable=fixme
+# TODO: fix this
 class NewfishDialog(Menu):
     """ Menu for creating a new ><> """
 
     def setup(self) -> None:
         """ Create objects & variables """
 
+        return
         self.types = list(SPECIES_DATA.keys())
         self.age_names = ["fry", "juvenile", "adult"]
 
@@ -97,10 +101,13 @@ class NewfishDialog(Menu):
     def get_skin(self, depth: int, value: str) -> str:
         """ Return skin of currently selected fish species """
 
+        return ''
         return repr(self.showcase_fish)
 
     def update_fish(self) -> None:
         """ Update showcase fish pigment & skin """
+
+        return
 
         fish = self.showcase_fish
         fish.species = self.fish_key
@@ -112,6 +119,7 @@ class NewfishDialog(Menu):
     def change_name(self, caller: Type[BaseElement]) -> None:
         """ Dialog to change the name of the fish """
 
+        return
         self.menu.wipe()
         dialog = load_from_file(to_local("layouts/input_dialog.ptg"))
         dialog.center()
@@ -142,6 +150,7 @@ class NewfishDialog(Menu):
     def show_info(self, caller: Type[BaseElement]) -> None:
         """ Show information (stats) about a fish species """
 
+        return
         self.menu.wipe()
         data = SPECIES_DATA[self.fish_key]
 
@@ -170,6 +179,7 @@ class NewfishDialog(Menu):
     def choose_variant(self, caller: Type[BaseElement]) -> None:
         """ Allow user to choose from variants """
 
+        return
         cont = Container(width=40)
         cont.static_width = 40
         variants = SPECIES_DATA[self.fish_key]["variants"]
@@ -190,6 +200,7 @@ class NewfishDialog(Menu):
     def choose_age(self, caller: Type[BaseElement]) -> None:
         """ Allow user to choose age """
 
+        return
         cont = Container(width=40)
         cont += Label("Choose age for your fish!")
         cont += padding_label
@@ -202,6 +213,7 @@ class NewfishDialog(Menu):
     def create_fish(self, caller: Type[BaseElement]) -> None:
         """ Create a new fish """
 
+        return
         if not self.name.value == "None":
             properties = {
                 "name": self.name.value,
@@ -221,6 +233,7 @@ class NewfishDialog(Menu):
 
     def run(self) -> None:
         key = ""
+        return
         while key not in ["ESC", "SIGTERM"]:
             _fish_change = False
             key = getch()
@@ -362,7 +375,7 @@ class InterfaceManager:
             elif key == " ":
                 self.aquarium.pause()
                 getch()
-                self.aquarium.pause(True)
+                self.aquarium.pause(False)
 
             elif key == "f":
                 self.aquarium += Food(self.aquarium)
@@ -391,6 +404,24 @@ class InterfaceManager:
         wipe()
         self.aquarium.pause(False)
 
+    def generate_fish_properties(self) -> FishProperties:
+        data = SPECIES_DATA
+        output: FishProperties = {
+            "pos": [0,0],
+            "species": "Molly",
+            "stages": [">->","><'>",">-<'>"],
+            "type": FishType.MID_WATER,
+            "variant": "golden",
+            "name": "test",
+            "age": 0
+        }
+
+        return output
+        
+        # for key, value in data.items():
+            # output[key] = value
+
+
     def start(self) -> None:
         """ Method that starts Interface """
 
@@ -398,7 +429,8 @@ class InterfaceManager:
         hide_cursor()
 
         for _ in range(20):
-            self.aquarium += Fish(self.aquarium)
+            properties = self.generate_fish_properties()
+            self.aquarium += Fish(self.aquarium, properties)
 
         self._display_loop.start()
         self.getch_loop()
