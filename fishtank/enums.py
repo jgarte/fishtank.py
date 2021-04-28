@@ -14,11 +14,13 @@ from typing import TypedDict
 class Event(Enum):
     """ Enum class that *Event derive from. """
 
+
 class AquariumEvent(Event):
     """ Enum for Aquarium().notify() calls """
 
     FOOD_DESTROYED = auto()
     TARGET_REACHED = auto()
+
 
 class FishEvent(Event):
     """
@@ -30,12 +32,14 @@ class FishEvent(Event):
         new food.
     """
 
+
 class FishType(Enum):
     """ Types for fish """
 
     BOTTOM_DWELLER = auto()
     MID_WATER = auto()
     TOP_DWELLER = auto()
+
 
 class BoundaryError(Enum):
     """
@@ -48,12 +52,13 @@ class BoundaryError(Enum):
     Y = auto()
     XY = auto()
 
-class FishProperties(TypedDict):
-    """ 
-    Fish property dictionary 
 
-    note: pos should be of type Position, 
-    but that causes circular imports. we 
+class FishProperties(TypedDict):
+    """
+    Fish property dictionary
+
+    note: pos should be of type Position,
+    but that causes circular imports. we
     should figure that out.
     """
 

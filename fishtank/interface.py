@@ -10,9 +10,10 @@ The interface to the interactive fishtank to your terminal.
 
 from __future__ import annotations
 
-from threading import Thread
-from time import sleep
 from typing import Type
+from threading import Thread
+from random import randint
+from time import sleep
 
 from pytermgui import (
     BaseElement,
@@ -25,10 +26,17 @@ from pytermgui import (
     clean_ansi,
     load_from_file,
 )
-from pytermgui.utils import keys, basic_selection, hide_cursor, wipe, width, height
+from pytermgui.utils import (
+    keys,
+    basic_selection,
+    hide_cursor,
+    wipe,
+    width,
+    height,
+)
 
-from . import SPECIES_DATA, to_local, styles
 from .classes import Fish, Aquarium, Position, Food
+from . import SPECIES_DATA, to_local, styles
 from .enums import FishProperties, FishType
 
 
@@ -49,8 +57,8 @@ class Menu:
         """ Stub for menu run """
 
 
-# pylint: disable=fixme
-# TODO: fix this
+# pylint: disable=fixme,unreachable,E1123,E1123,E1121,E1101,R0201,E1120
+# TODO: this needs to be rewritten, ^ is ugly as hell.
 class NewfishDialog(Menu):
     """ Menu for creating a new ><> """
 
@@ -101,7 +109,7 @@ class NewfishDialog(Menu):
     def get_skin(self, depth: int, value: str) -> str:
         """ Return skin of currently selected fish species """
 
-        return ''
+        return ""
         return repr(self.showcase_fish)
 
     def update_fish(self) -> None:
@@ -249,7 +257,9 @@ class NewfishDialog(Menu):
                 _fish_change = True
 
             elif key in keys.fore:
-                self.current_index = min(self.current_index + 1, len(self.types) - 1)
+                self.current_index = min(
+                    self.current_index + 1, len(self.types) - 1
+                )
                 _fish_change = True
 
             elif key == "ENTER":
@@ -266,7 +276,9 @@ class NewfishDialog(Menu):
             self.fish_key = self.types[self.current_index]
 
             if _fish_change:
-                self.variants.value = list(SPECIES_DATA[self.fish_key]["variants"])[0]
+                self.variants.value = list(
+                    SPECIES_DATA[self.fish_key]["variants"]
+                )[0]
                 self.update_fish()
 
             print(self.menu)
@@ -343,12 +355,16 @@ class InterfaceManager:
     def __init__(self) -> None:
         styles.default()
 
-        self.aquarium: Aquarium = Aquarium(_width=width() - 5, _height=height())
+        self.aquarium: Aquarium = Aquarium(
+            _width=width() - 5, _height=height()
+        )
         self.aquarium.center()
 
         self.aquarium.fps = 25
         self._loop = True
-        self._display_loop = Thread(target=self.display_loop)
+        self._display_loop = Thread(
+            target=self.display_loop, name="display_loop"
+        )
 
     def display_loop(self) -> None:
         """ Main display loop """
@@ -382,6 +398,10 @@ class InterfaceManager:
                 # currently unused
                 # self.show(FeedingMenu)
 
+            elif key == "*":
+                properties = self.generate_fish_properties()
+                self.aquarium += Fish(self.aquarium, properties)
+
             elif key == "CTRL_R":
                 self.aquarium.objects = []
                 self._loop = False
@@ -405,22 +425,37 @@ class InterfaceManager:
         self.aquarium.pause(False)
 
     def generate_fish_properties(self) -> FishProperties:
+        """ Generate random fish properties """
+
+        def get_random_from_generator(values: set[str]) -> str:
+            """ Helper for getting random items """
+
+            items = list(values)
+            start = 0
+            end = len(items) - 1
+
+            return items[randint(start, end)]
+
         data = SPECIES_DATA
+
+        species = get_random_from_generator(data.keys())
+        variant = get_random_from_generator(data[species]["variants"].keys())
+
+        # this step could/should be automated
+        stages = data[species]["stages"]
+        _type = data[species]["type"]
+
         output: FishProperties = {
-            "pos": [0,0],
-            "species": "Molly",
-            "stages": [">->","><'>",">-<'>"],
+            "pos": [0, 0],
+            "species": species,
+            "stages": stages,
             "type": FishType.MID_WATER,
-            "variant": "golden",
+            "variant": variant,
             "name": "test",
-            "age": 0
+            "age": 0,
         }
 
         return output
-        
-        # for key, value in data.items():
-            # output[key] = value
-
 
     def start(self) -> None:
         """ Method that starts Interface """

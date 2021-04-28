@@ -39,6 +39,8 @@ def default() -> None:
         "inputfield_highlight",
         lambda depth, item: highlight(item, get_depth(depth, depth_colors)),
     )
-    set_style("prompt_short_highlight", lambda depth, item: highlight(item, 72))
+    set_style(
+        "prompt_short_highlight", lambda depth, item: highlight(item, 72)
+    )
     set_style("prompt_long_highlight", lambda depth, item: highlight(item, 72))
     set_style("prompt_delimiter_chars", lambda: "<>")

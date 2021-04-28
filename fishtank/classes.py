@@ -13,7 +13,7 @@ from __future__ import annotations
 # pylint: disable=no-name-in-module
 from math import sqrt
 from random import randint
-from typing import Union, Generator, Optional, Any, TypedDict
+from typing import Union, Generator, Optional, Any
 
 from pytermgui import gradient, real_length, clean_ansi
 from pytermgui import Container, BaseElement, padding_label
@@ -21,8 +21,13 @@ from pytermgui import Container, BaseElement, padding_label
 # `dbg` is usually not used in pushed code, but is often called  otherwise.
 # pylint: disable=unused-import
 from . import SPECIES_DATA, dbg
-from .enums import Event, AquariumEvent, BoundaryError, FishType, FishProperties
-
+from .enums import (
+    Event,
+    AquariumEvent,
+    BoundaryError,
+    FishType,
+    FishProperties,
+)
 
 
 class Position:
@@ -44,6 +49,14 @@ class Position:
             raise NotImplementedError()
 
         return self.x == other.x and self.y == other.y
+
+    def __gt__(self, other: object) -> bool:
+        """ Return if self.x > other.x """
+
+        if not isinstance(other, Position):
+            raise NotImplementedError()
+
+        return self.x > other.x
 
     def __add__(self, other: object) -> Position:
         """ Return new Position containing added values """
@@ -155,7 +168,9 @@ class Boundary:
             return self._contains_coordinates(other)
 
         pos1, pos2 = other.start, other.end
-        return self._contains_coordinates(pos1) and self._contains_coordinates(pos2)
+        return self._contains_coordinates(pos1) and self._contains_coordinates(
+            pos2
+        )
 
 
 class Fish:
@@ -179,17 +194,24 @@ class Fish:
         """ Set up instance """
 
         self.path: list[Position] = []
-        self.stages: list[str]
         self.pigment: list[int] = []
+        self.skin_length: int = 0
+        self.stages: list[str]
+        self.skin: str = ""
+        self.pos: Position
         self.variant: str
-        self.skin: str = ''
+        self.species: str
         self.age: int
+
         self._food: Optional[Food] = None
         self._heading: int = 0
 
         self.parent = parent
         self._set_properties(properties)
         self.pigment = self.get_pigment()
+
+        self.heading_left = -1
+        self.heading_right = 1
 
     def _set_properties(self, properties: FishProperties) -> None:
         for key, value in properties.items():
@@ -203,7 +225,6 @@ class Fish:
 
             setattr(self, key, value)
 
-    
     @staticmethod
     def _reverse_skin(skin: str) -> str:
         """ Return char by char reversed version of skin """
@@ -229,18 +250,6 @@ class Fish:
         posx, posy = self.pos
         return posx, posy, posx + real_length(self.skin), posy
 
-    @property
-    def pos(self) -> Position:
-        """ Getter of _pos """
-
-        return self._pos
-
-    @pos.setter
-    def pos(self, new: Position) -> None:
-        """ Update the fish's position """
-
-        self._pos = new
-
     def __repr__(self) -> Any:
         """
         __repr__ method that handles pigmenting
@@ -253,8 +262,10 @@ class Fish:
 
         _skin = self.stages[self.age]
         self.skin = _skin
+        self.skin_length = real_length(_skin)
 
-        if self._heading:
+        # skins are right-headed
+        if self._heading is self.heading_left:
             skin = self._reverse_skin(_skin)
             pigment = list(reversed(self.pigment[: len(skin) - 1]))
 
@@ -263,13 +274,6 @@ class Fish:
             pigment = self.pigment[: len(skin) - 1]
 
         return gradient(skin, pigment)
-
-    def _load_from(self, data: dict[str, Any]) -> None:
-        """ Set self data from data """
-
-        for key, value in data.items():
-            if not key == "specials":
-                setattr(self, key, value)
 
     def _position_valid(self, pos: Position) -> bool:
         if self.parent is None:
@@ -290,6 +294,7 @@ class Fish:
     def get_pigment(self) -> list[int]:
         """ Get pigmentation using self.variant"""
 
+        # this is ugly, but outsourcing it to a function would be uglier.
         variant_data = SPECIES_DATA[self.species]["variants"].get(self.variant)
         if variant_data:
             pigment = []
@@ -307,20 +312,20 @@ class Fish:
         """ Get position to pos, return it as a list of Position-s """
 
         startx, starty = self.pos
-        endiffx, endiffy = pos
-
-        if startx > endiffx:
-            self._heading = 1
-        else:
-            self._heading = 0
+        endx, endy = pos
 
         # x dif, x direction
-        diffx = abs(endiffx - startx)
-        intbuff_x = 1 if startx < endiffx else -1
+        diffx = abs(endx - startx)
+        intbuff_x = 1 if startx < endx else -1
 
         # y dif, y direction
-        diffy = -abs(endiffy - starty)
-        intbuff_y = 1 if starty < endiffy else -1
+        diffy = -abs(endy - starty)
+        intbuff_y = 1 if starty < endy else -1
+
+        if intbuff_x == 1:
+            self._heading = self.heading_right
+        else:
+            self._heading = self.heading_left
 
         # error
         error = diffx + diffy
@@ -332,7 +337,7 @@ class Fish:
                 break
 
             path.append(pos)
-            if startx == endiffx and starty == endiffy:
+            if startx == endx and starty == endy:
                 break
 
             error2 = 2 * error
@@ -348,7 +353,12 @@ class Fish:
         return path
 
     def update(self) -> Position:
-        """ Do next position update """
+        """
+        Do next position update
+
+        rewrite this pls
+        """
+        # pylint: disable=too-many-branches
 
         # try to find food candidates
         if not self._food:
@@ -365,20 +375,29 @@ class Fish:
                     self._food = candidates[0][1]
 
         else:
-            if self.pos.distance_to(self._food.pos) < 2:
+            if self.pos.distance_to(self._food.pos) < self.skin_length + 1:
                 self._food.health -= 1
+                if randint(0, 10) == 1 and self.age < len(self.stages) - 1:
+                    self.age += 1
+                    if self.pos < self._food.pos:
+                        self._heading = self.heading_right
+                    else:
+                        self._heading = self.heading_left
 
         if len(self.path) > 0:
             self.pos = self.path[0]
 
             if self._food:
-                self.path = self.get_path(self._food.pos)
+                # this mechanic is interesting, but it breaks things.
+                offset = (
+                    -real_length(self.skin) if self.pos < self._food.pos else 1
+                )
+                self.path = self.get_path(self._food.pos + Position(offset, 0))
 
             if len(self.path) > 0:
                 self.path.pop(0)
 
         else:
-
             if randint(0, 10) < 4:
                 self.path += [self.pos] * randint(2, 5)
 
@@ -510,7 +529,10 @@ class Aquarium(Container):  # type: ignore[misc]
 
     # pylint: disable=invalid-name
     def __init__(
-        self, pos: Optional[list[int]] = None, _width: int = 70, _height: int = 25
+        self,
+        pos: Optional[list[int]] = None,
+        _width: int = 70,
+        _height: int = 25,
     ):
         """ Set up object """
 
@@ -595,7 +617,9 @@ class Aquarium(Container):  # type: ignore[misc]
             startx += real_length(obj.skin)
             endx -= real_length(obj.skin)
 
-        return Position(randint(startx + 1, endx - 1), randint(starty + 1, endy - 1))
+        return Position(
+            randint(startx + 1, endx - 1), randint(starty + 1, endy - 1)
+        )
 
     def notify(self, event: AquariumEvent, data: Optional[Any] = None) -> None:
         """ Notify Aquarium of events """
@@ -604,7 +628,9 @@ class Aquarium(Container):  # type: ignore[misc]
             # NOTE: this should never be raised, but even then
             #       should be limited by an option
             if not isinstance(data, Food):
-                raise Exception(f"Object {data} is not food! How did this happen?")
+                raise Exception(
+                    f"Object {data} is not food! How did this happen?"
+                )
 
             self.objects.remove(data)
             for f in self.fish():
@@ -612,7 +638,9 @@ class Aquarium(Container):  # type: ignore[misc]
 
         elif event is AquariumEvent.TARGET_REACHED:
             if not isinstance(data, Fish):
-                raise Exception(f"Object {data} is not fish! How did this happen?")
+                raise Exception(
+                    f"Object {data} is not fish! How did this happen?"
+                )
 
             # this is not working the way it should be
             # if data in self._target_reached:
@@ -669,10 +697,18 @@ class Aquarium(Container):  # type: ignore[misc]
     def update(self) -> None:
         """ Update elements in self.objects"""
 
-        if self._is_paused:
-            return
+        def show_element(element: Union[Food, Fish]) -> None:
+            """ Show element """
 
-        for element in self.objects:
             element.wipe()
             element.update()
             element.show()
+
+        if self._is_paused:
+            return
+
+        for food in self.foods():
+            show_element(food)
+
+        for fish in self.fish():
+            show_element(fish)

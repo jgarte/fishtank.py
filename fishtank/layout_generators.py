@@ -129,12 +129,12 @@ def generate(output: Callable[..., Any] = print) -> None:
         if callable(value) and key.startswith("generate_"):
             text = f"Running {key}() ... "
 
-            if output == print:
+            if output is print:
                 print(text, end="", flush=True)
 
             value()
 
-            if output == print:
+            if output is print:
                 print("done!")
             else:
                 dbg(text + "done!")
