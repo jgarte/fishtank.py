@@ -10,6 +10,8 @@ Enum classes (and types) for the program.
 from enum import Enum, auto
 from typing import TypedDict
 
+PositionRange = tuple[int, int]
+
 
 class Event(Enum):
     """ Enum class that *Event derive from. """
@@ -18,6 +20,7 @@ class Event(Enum):
 class AquariumEvent(Event):
     """ Enum for Aquarium().notify() calls """
 
+    FOOD_AVAILABLE = auto()
     FOOD_DESTROYED = auto()
     TARGET_REACHED = auto()
 

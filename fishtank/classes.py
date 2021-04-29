@@ -168,9 +168,7 @@ class Boundary:
             return self._contains_coordinates(other)
 
         pos1, pos2 = other.start, other.end
-        return self._contains_coordinates(pos1) and self._contains_coordinates(
-            pos2
-        )
+        return self._contains_coordinates(pos1) and self._contains_coordinates(pos2)
 
 
 class Fish:
@@ -185,7 +183,6 @@ class Fish:
     | \A| |  \A| |    | |A  |
     -------------------------
 
-    - Aquarium()
     """
 
     # it makes sense for this class to have as many attributes as it does.
@@ -203,6 +200,7 @@ class Fish:
         self.species: str
         self.age: int
 
+        self._follow_target: Optional[Union[Fish, Food]] = None
         self._food: Optional[Food] = None
         self._heading: int = 0
 
@@ -276,6 +274,8 @@ class Fish:
         return gradient(skin, pigment)
 
     def _position_valid(self, pos: Position) -> bool:
+        """ Return validity (is within self.parent.bounds) of pos """
+
         if self.parent is None:
             return False
 
@@ -352,64 +352,85 @@ class Fish:
 
         return path
 
+    def get_new_path(self) -> list[Position]:
+        """Get new target according to self.type
+        Note: this should handle different FishTypes
+        """
+
+        return self.get_path(self.parent.get_next_position())
+
+    def distance_to(self, other: Union[Food, Fish]) -> float:
+        """ Return distance between two objects """
+
+        if type(other) not in [Food, Fish]:
+            raise NotImplementedError(f"Why are we getting distance to {type(other)}?")
+
+        if self.pos > other.pos:
+            offset = 2
+        else:
+            offset = self.skin_length - 1
+
+        return self.pos.distance_to(other.pos) - offset
+
+    def consume_food(self) -> bool:
+        """ Try to consume food """
+
+        if self._follow_target is None:
+            return False
+
+        if not isinstance(self._follow_target, Food):
+            return False
+
+        food = self._follow_target
+
+        if self._heading is self.heading_right:
+            target_distance = self.skin_length - 1
+        else:
+            target_distance = 2
+
+        distance = self.distance_to(food)
+
+        if distance <= target_distance and self.pos.y == food.pos.y:
+            food.health -= 1
+
+            if randint(0, 10) == 1 and self.age < len(self.stages) - 1:
+                self.age += 1
+
+            return True
+
+        return False
+
     def update(self) -> Position:
-        """
-        Do next position update
+        """ Do next position update """
 
-        rewrite this pls
-        """
-        # pylint: disable=too-many-branches
+        if self._follow_target is not None:
+            self.path = self.get_path(self._follow_target.pos)
 
-        # try to find food candidates
-        if not self._food:
+        if self.consume_food():
+            return self.pos
+
+        if len(self.path) > 1:
+            if self._follow_target is not None:
+                self.path.pop(0)
+            self.pos = self.path.pop(0)
+
+        else:
+            self.parent.notify(AquariumEvent.TARGET_REACHED, self)
+
             candidates = []
             for food in self.parent.foods():
-                if food.health > 0:
-                    distance = self.pos.distance_to(food.pos)
-                    candidates.append((distance, food))
+                candidates.append((food, self.distance_to(food)))
 
-            # only assign when there is a food available
             if len(candidates) > 0:
-                if randint(0, 3) == 1:
-                    candidates.sort(key=lambda value: value[0])
-                    self._food = candidates[0][1]
-
-        else:
-            if self.pos.distance_to(self._food.pos) < self.skin_length + 1:
-                self._food.health -= 1
-                if randint(0, 10) == 1 and self.age < len(self.stages) - 1:
-                    self.age += 1
-                    if self.pos < self._food.pos:
-                        self._heading = self.heading_right
-                    else:
-                        self._heading = self.heading_left
-
-        if len(self.path) > 0:
-            self.pos = self.path[0]
-
-            if self._food:
-                # this mechanic is interesting, but it breaks things.
-                offset = (
-                    -real_length(self.skin) if self.pos < self._food.pos else 1
-                )
-                self.path = self.get_path(self._food.pos + Position(offset, 0))
-
-            if len(self.path) > 0:
-                self.path.pop(0)
-
-        else:
-            if randint(0, 10) < 4:
-                self.path += [self.pos] * randint(2, 5)
+                candidates.sort(key=lambda value: value[1])
+                food, _ = candidates[0]
+                self._follow_target = food
 
             else:
-                self.path = self.get_path(self.parent.get_next_position())
-
-                if self._food is None:
-                    self.parent.notify(AquariumEvent.TARGET_REACHED, self)
+                if randint(0, 3) == 2:
+                    self.path += [self.pos] * randint(3, 10)
                 else:
-                    self._food = None
-
-                self.update()
+                    self.path = self.get_new_path()
 
         return self.pos
 
@@ -417,13 +438,20 @@ class Fish:
         """ Notify fish of some event """
 
         if event == AquariumEvent.FOOD_DESTROYED:
-            if data is not self._food:
+            if data is not self._follow_target:
                 return
 
-            if randint(0, 3) < 2:
+            self._follow_target = None
+            if randint(1, 3) > 1:
                 self.path = []
-                self._food = None
                 self.update()
+
+        elif event == AquariumEvent.FOOD_AVAILABLE:
+            if not isinstance(data, Food):
+                raise Exception(f"Object {data} is not Food! How did this happen?")
+
+            if self.distance_to(data) < 20:
+                self._follow_target = data
 
     def wipe(self) -> None:
         """ Wipe fish's skin at its current position """
@@ -470,8 +498,8 @@ class Food:
     def destroy(self) -> None:
         """ Remove self from parent """
 
-        self.wipe()
         self.parent.notify(AquariumEvent.FOOD_DESTROYED, self)
+        self.wipe()
 
     def update(self) -> None:
         """ Update position & path"""
@@ -514,7 +542,7 @@ class Food:
         """ Clear char at pos """
 
         posx, posy = self.pos
-        print(f"\033[{posy};{posx}H" + real_length(self.skin) * " ")
+        print(f"\033[{posy};{posx}H" + real_length(self.skin) * "x")
 
     def show(self) -> None:
         """ Print self to pos """
@@ -544,7 +572,7 @@ class Aquarium(Container):  # type: ignore[misc]
         self.bounds: Boundary = self._get_bounds()
 
         self._is_paused: bool = False
-        self._target_reached: list[Fish] = []
+        self._prev_target_pos: Optional[Position] = None
 
         if pos is None:
             pos = [0, 0]
@@ -601,6 +629,10 @@ class Aquarium(Container):  # type: ignore[misc]
                 other.pos = self._get_position_in_bounds(other)
             other.parent = self
 
+            if isinstance(other, Food):
+                for fish in self.fish():
+                    fish.notify(AquariumEvent.FOOD_AVAILABLE, other)
+
         return self
 
     def __iadd__(self, other: Union[BaseElement, Fish]) -> Aquarium:
@@ -617,9 +649,7 @@ class Aquarium(Container):  # type: ignore[misc]
             startx += real_length(obj.skin)
             endx -= real_length(obj.skin)
 
-        return Position(
-            randint(startx + 1, endx - 1), randint(starty + 1, endy - 1)
-        )
+        return Position(randint(startx + 1, endx - 1), randint(starty + 1, endy - 1))
 
     def notify(self, event: AquariumEvent, data: Optional[Any] = None) -> None:
         """ Notify Aquarium of events """
@@ -628,9 +658,7 @@ class Aquarium(Container):  # type: ignore[misc]
             # NOTE: this should never be raised, but even then
             #       should be limited by an option
             if not isinstance(data, Food):
-                raise Exception(
-                    f"Object {data} is not food! How did this happen?"
-                )
+                raise Exception(f"Object {data} is not food! How did this happen?")
 
             self.objects.remove(data)
             for f in self.fish():
@@ -638,18 +666,9 @@ class Aquarium(Container):  # type: ignore[misc]
 
         elif event is AquariumEvent.TARGET_REACHED:
             if not isinstance(data, Fish):
-                raise Exception(
-                    f"Object {data} is not fish! How did this happen?"
-                )
+                raise Exception(f"Object {data} is not fish! How did this happen?")
 
-            # this is not working the way it should be
-            # if data in self._target_reached:
-            #    return
-
-            # self._target_reached.append(data)
-            # reached_fish = len(self._target_reached)
-            # total_fish = len(list(self.fish()))
-
+            self._prev_target_pos = self.target_pos
             self.target_pos = None
 
     def pause(self, value: bool = True) -> None:
@@ -690,7 +709,20 @@ class Aquarium(Container):  # type: ignore[misc]
         """ Return a target position for fish """
 
         if self.target_pos is None:
-            self.target_pos = self._get_position_in_bounds()
+            minx, miny, maxx, maxy = self.bounds
+
+            # if self._prev_target_pos is not None:
+            # curx, cury = self._prev_target_pos
+            # else:
+            # curx = 10
+            # cury = 5
+
+            # newx = randint(min(minx, curx-10), max(maxx, curx+10))
+            # newy = randint(min(miny, cury-1), max(maxy, cury+1))
+            newx = randint(minx, maxx)
+            newy = randint(miny, maxy)
+            self.target_pos = Position(newx, newy)
+            # self.target_pos = self._get_position_in_bounds()
 
         return self.target_pos
 

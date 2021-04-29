@@ -257,9 +257,7 @@ class NewfishDialog(Menu):
                 _fish_change = True
 
             elif key in keys.fore:
-                self.current_index = min(
-                    self.current_index + 1, len(self.types) - 1
-                )
+                self.current_index = min(self.current_index + 1, len(self.types) - 1)
                 _fish_change = True
 
             elif key == "ENTER":
@@ -276,9 +274,7 @@ class NewfishDialog(Menu):
             self.fish_key = self.types[self.current_index]
 
             if _fish_change:
-                self.variants.value = list(
-                    SPECIES_DATA[self.fish_key]["variants"]
-                )[0]
+                self.variants.value = list(SPECIES_DATA[self.fish_key]["variants"])[0]
                 self.update_fish()
 
             print(self.menu)
@@ -355,16 +351,12 @@ class InterfaceManager:
     def __init__(self) -> None:
         styles.default()
 
-        self.aquarium: Aquarium = Aquarium(
-            _width=width() - 5, _height=height()
-        )
+        self.aquarium: Aquarium = Aquarium(_width=width() - 5, _height=height())
         self.aquarium.center()
 
         self.aquarium.fps = 25
         self._loop = True
-        self._display_loop = Thread(
-            target=self.display_loop, name="display_loop"
-        )
+        self._display_loop = Thread(target=self.display_loop, name="display_loop")
 
     def display_loop(self) -> None:
         """ Main display loop """
@@ -445,11 +437,20 @@ class InterfaceManager:
         stages = data[species]["stages"]
         _type = data[species]["type"]
 
+        if _type == "top_dweller":
+            _type = FishType.TOP_DWELLER
+
+        elif _type == "mid_water":
+            _type = FishType.MID_WATER
+
+        elif _type == "bottom_dweller":
+            _type = FishType.BOTTOM_DWELLER
+
         output: FishProperties = {
             "pos": [0, 0],
             "species": species,
             "stages": stages,
-            "type": FishType.MID_WATER,
+            "type": _type,
             "variant": variant,
             "name": "test",
             "age": 0,
