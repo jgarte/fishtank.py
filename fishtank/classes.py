@@ -15,7 +15,7 @@ from math import sqrt
 from random import randint
 from typing import Union, Generator, Optional, Any
 
-from pytermgui import gradient, real_length, clean_ansi
+from pytermgui import gradient, real_length, clean_ansi, color
 from pytermgui import Container, BaseElement, padding_label
 
 # `dbg` is usually not used in pushed code, but is often called  otherwise.
@@ -62,7 +62,7 @@ class Position:
         """ Return new Position containing added values """
 
         if not isinstance(other, Position):
-            raise NotImplementedError()
+            raise NotImplementedError(f"Cannot add {type(other)} object to Position!")
 
         return Position(self.x + other.x, self.y + other.y)
 
@@ -105,7 +105,6 @@ class Position:
             raise NotImplementedError()
 
         return sqrt((other.x - self.x) ** 2 + (other.y - self.y) ** 2)
-
 
 class Boundary:
     """ Boundary made up by two Position objects, non-inclusive of borders """
@@ -170,6 +169,29 @@ class Boundary:
         pos1, pos2 = other.start, other.end
         return self._contains_coordinates(pos1) and self._contains_coordinates(pos2)
 
+    def show(self) -> None:
+        """ Print coordinates """
+
+        self.start.show()
+        self.end.show()
+
+    def update(self, start: Optional[Position] = None, end: Optional[Position] = None):
+        """ Update coordinates """
+        
+        if start is not None:
+            assert isinstance(start, Position)
+
+            self.start = start
+
+        if end is not None:
+            assert isinstance(end, Position)
+
+            self.end = end
+
+    def __repr__(self):
+        """ Stringify object """
+
+        return f"Boundary({self.start.x}, {self.start.y}, {self.end.x}, {self.end.y})"
 
 class Fish:
     r"""
@@ -194,12 +216,14 @@ class Fish:
         self.pigment: list[int] = []
         self.skin_length: int = 0
         self.stages: list[str]
+        self.bounds: Optional[Boundary] = None
         self.skin: str = ""
-        self.pos: Position
         self.variant: str
         self.species: str
         self.age: int
 
+
+        self._pos: Optional[Position] = None
         self._follow_target: Optional[Union[Fish, Food]] = None
         self._food: Optional[Food] = None
         self._heading: int = 0
@@ -210,6 +234,8 @@ class Fish:
 
         self.heading_left = -1
         self.heading_right = 1
+
+        self.update()
 
     def _set_properties(self, properties: FishProperties) -> None:
         for key, value in properties.items():
@@ -240,17 +266,38 @@ class Fish:
             reversed_skin += new
 
         return reversed_skin
-
+    
     @property
-    def bounds(self) -> tuple[int, int, int, int]:
+    def pos(self) -> None:
+        """ Return position """
+
+        return self._pos
+
+    @pos.setter
+    def pos(self, value: Position) -> None:
+        """ Set new position and update bounds """
+
+        self._pos = value
+
+        start, end = self._get_bounds()
+
+        if self.bounds is not None:
+            self.bounds.update(start, end)
+
+        else:
+            self.bounds = Boundary(start, end)
+
+    def _get_bounds(self) -> tuple[int]:
         """ Return boundaries of object """
 
         posx, posy = self.pos
-        return posx, posy, posx + real_length(self.skin), posy
+        start = Position(posx, posy)
+        end = Position(posx + real_length(self.skin), posy)
+
+        return start, end
 
     def __repr__(self) -> Any:
-        """
-        __repr__ method that handles pigmenting
+        """__repr__ method that handles pigmenting
 
         Note:
             pytermgui.gradient() and this function
@@ -278,6 +325,8 @@ class Fish:
 
         if self.parent is None:
             return False
+
+        return True
 
         posx, posy = pos
         start_pos = Position(posx, posy)
@@ -353,11 +402,11 @@ class Fish:
         return path
 
     def get_new_path(self) -> list[Position]:
-        """Get new target according to self.type
+        """ Get new target according to self.type
         Note: this should handle different FishTypes
         """
 
-        return self.get_path(self.parent.get_next_position())
+        return self.get_path(self.parent.get_next_position(self))
 
     def distance_to(self, other: Union[Food, Fish]) -> float:
         """ Return distance between two objects """
@@ -412,6 +461,7 @@ class Fish:
         if len(self.path) > 1:
             if self._follow_target is not None:
                 self.path.pop(0)
+
             self.pos = self.path.pop(0)
 
         else:
@@ -427,10 +477,7 @@ class Fish:
                 self._follow_target = food
 
             else:
-                if randint(0, 3) == 2:
-                    self.path += [self.pos] * randint(3, 10)
-                else:
-                    self.path = self.get_new_path()
+                self.path += [self.pos] * randint(3, 10) + self.get_new_path()
 
         return self.pos
 
@@ -465,7 +512,6 @@ class Fish:
         posx, posy = self.pos
         print(f"\033[{posy};{posx}H" + repr(self))
 
-
 class Food:
     """ fud """
 
@@ -476,6 +522,7 @@ class Food:
     ):
         """ Initialize object """
 
+        self.bounds = Boundary(Position(0, 0), Position(0, 0))
         self.skin: str = "#"
         self.path: list[Position] = []
         self.counter: int = 0
@@ -489,6 +536,19 @@ class Food:
 
         self.health = health
         self.parent = parent
+    
+    @property
+    def pos(self):
+        """ Get self._pos """
+
+        return self._pos
+
+    @pos.setter
+    def pos(self, value: Position):
+        """ Set self._pos """
+
+        self._pos = value
+        self.bounds.update(self.pos, self.pos + Position(x=real_length(self.skin)))
 
     def stop(self) -> None:
         """ Stop updates of object """
@@ -521,7 +581,6 @@ class Food:
 
         x_change = randint(-1, 1)
 
-        # this is a clumsy call
         target_pos = self.pos + Position(x_change, 1)
         error = self.parent.bounds.error(target_pos)
 
@@ -542,14 +601,13 @@ class Food:
         """ Clear char at pos """
 
         posx, posy = self.pos
-        print(f"\033[{posy};{posx}H" + real_length(self.skin) * "x")
+        print(f"\033[{posy};{posx}H" + real_length(self.skin) * " ")
 
     def show(self) -> None:
         """ Print self to pos """
 
         posx, posy = self.pos
         print(f"\033[{posy};{posx}H" + self.skin)
-
 
 # as long as pytermgui is not type this error would occur.
 class Aquarium(Container):  # type: ignore[misc]
@@ -569,7 +627,7 @@ class Aquarium(Container):  # type: ignore[misc]
         self.fps: int
         self.objects: list[Union[Fish, Food]] = []
         self.target_pos: Union[Position, None] = None
-        self.bounds: Boundary = self._get_bounds()
+        self.bounds: Boundary
 
         self._is_paused: bool = False
         self._prev_target_pos: Optional[Position] = None
@@ -588,15 +646,60 @@ class Aquarium(Container):  # type: ignore[misc]
 
         repr(self)
         self.center()
+        self.bounds = self._get_bounds()
+
+
+    def __iter__(self) -> Generator[Union[Fish, Food], None, None]:
+        """ Iterate through fish children """
+
+        for obj in self.objects:
+            yield obj
+
+    def __add__(self, other: Union[BaseElement, Fish]) -> Aquarium:
+        """ Add BaseElement or Fish to contents """
+
+        if issubclass(type(other), BaseElement):
+            self._add_element(other)
+        else:
+            self.objects.append(other)
+
+            while not self.contains(other):
+                other.pos = self._get_position_in_bounds(other)
+            other.path = []
+
+            other.parent = self
+
+            if isinstance(other, Food):
+                for fish in self.fish():
+                    fish.notify(AquariumEvent.FOOD_AVAILABLE, other)
+            self.pause(False)
+
+        return self
+
+    def __iadd__(self, other: Union[BaseElement, Fish]) -> Aquarium:
+        """ Execute __add__, return self """
+
+        return self.__add__(other)
 
     def _get_bounds(self) -> Boundary:
         """ Return boundaries of object """
 
         x, y = self.pos
         start = Position(x + 1, y + 1)
-        end = Position(x + self.width + 1, y + self.height)
+        end = Position(x + self.width - 1, y + self.height)
 
         return Boundary(start, end)
+
+    def _get_position_in_bounds(self, obj: Optional[Fish] = None) -> Position:
+        """ Return a Position() object that is guaranteed to be within bounds """
+
+        startx, starty, endx, endy = self.bounds
+
+        if obj is not None:
+            startx += real_length(obj.skin) - 1
+            endx -= real_length(obj.skin) + 1
+
+        return Position(randint(startx + 1, endx - 1), randint(starty + 1, endy - 1))
 
     def foods(self) -> Generator[Food, None, None]:
         """ Iterate through foods """
@@ -612,45 +715,6 @@ class Aquarium(Container):  # type: ignore[misc]
             if isinstance(obj, Fish):
                 yield obj
 
-    def __iter__(self) -> Generator[Union[Fish, Food], None, None]:
-        """ Iterate through fish children """
-
-        for obj in self.objects:
-            yield obj
-
-    def __add__(self, other: Union[BaseElement, Fish]) -> Aquarium:
-        """ Add BaseElement or Fish to contents """
-
-        if issubclass(type(other), BaseElement):
-            self._add_element(other)
-        else:
-            self.objects.append(other)
-            if not self.contains(other.pos):
-                other.pos = self._get_position_in_bounds(other)
-            other.parent = self
-
-            if isinstance(other, Food):
-                for fish in self.fish():
-                    fish.notify(AquariumEvent.FOOD_AVAILABLE, other)
-
-        return self
-
-    def __iadd__(self, other: Union[BaseElement, Fish]) -> Aquarium:
-        """ Execute __add__, return self """
-
-        return self.__add__(other)
-
-    def _get_position_in_bounds(self, obj: Optional[Fish] = None) -> Position:
-        """ Return a Position() object that is guaranteed to be within bounds """
-
-        startx, starty, endx, endy = self.bounds
-
-        if obj is not None:
-            startx += real_length(obj.skin)
-            endx -= real_length(obj.skin)
-
-        return Position(randint(startx + 1, endx - 1), randint(starty + 1, endy - 1))
-
     def notify(self, event: AquariumEvent, data: Optional[Any] = None) -> None:
         """ Notify Aquarium of events """
 
@@ -660,7 +724,9 @@ class Aquarium(Container):  # type: ignore[misc]
             if not isinstance(data, Food):
                 raise Exception(f"Object {data} is not food! How did this happen?")
 
-            self.objects.remove(data)
+            if data in self.objects:
+                self.objects.remove(data)
+
             for f in self.fish():
                 f.notify(event, data)
 
@@ -690,10 +756,10 @@ class Aquarium(Container):  # type: ignore[misc]
 
         return None
 
-    def contains(self, pos: Position) -> bool:
-        """ Return if position is contained within self """
+    def contains(self, obj: Fish) -> bool:
+        """ Return if obj is contained within self """
 
-        return self.bounds.contains(pos)
+        return self.bounds.contains(obj.bounds)
 
     def move(self, pos: list[int], _wipe: bool = False) -> Aquarium:
         """ Implement move method using Position-s """
@@ -705,24 +771,17 @@ class Aquarium(Container):  # type: ignore[misc]
 
         return self
 
-    def get_next_position(self) -> Position:
+    def get_next_position(self, obj: Optional[Fish] = None) -> Position:
         """ Return a target position for fish """
 
         if self.target_pos is None:
             minx, miny, maxx, maxy = self.bounds
+            if obj is not None:
+                maxx -= obj.skin_length + 1
 
-            # if self._prev_target_pos is not None:
-            # curx, cury = self._prev_target_pos
-            # else:
-            # curx = 10
-            # cury = 5
-
-            # newx = randint(min(minx, curx-10), max(maxx, curx+10))
-            # newy = randint(min(miny, cury-1), max(maxy, cury+1))
-            newx = randint(minx, maxx)
-            newy = randint(miny, maxy)
+            newx = randint(minx+1, maxx-1)
+            newy = randint(miny+1, maxy-1)
             self.target_pos = Position(newx, newy)
-            # self.target_pos = self._get_position_in_bounds()
 
         return self.target_pos
 

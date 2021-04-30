@@ -36,7 +36,7 @@ from pytermgui.utils import (
 )
 
 from .classes import Fish, Aquarium, Position, Food
-from . import SPECIES_DATA, to_local, styles
+from . import SPECIES_DATA, to_local, styles, dbg
 from .enums import FishProperties, FishType
 
 
@@ -351,16 +351,17 @@ class InterfaceManager:
     def __init__(self) -> None:
         styles.default()
 
-        self.aquarium: Aquarium = Aquarium(_width=width() - 5, _height=height())
+        self.aquarium: Aquarium = Aquarium(_width=width()//2, _height=height()-15)
+        self.aquarium.fps: int = 25
         self.aquarium.center()
 
-        self.aquarium.fps = 25
         self._loop = True
         self._display_loop = Thread(target=self.display_loop, name="display_loop")
 
     def display_loop(self) -> None:
         """ Main display loop """
 
+        print(self.aquarium)
         while self._loop:
             self.aquarium.update()
             sleep(1 / 25)
@@ -404,6 +405,7 @@ class InterfaceManager:
 
             elif key == "CTRL_L":
                 wipe()
+                print(self.aquarium)
 
     def show(self, menu: Type[Menu]) -> None:
         """ Show menu object """
@@ -459,7 +461,7 @@ class InterfaceManager:
         return output
 
     def start(self) -> None:
-        """ Method that starts Interface """
+        """ Main loop of the program """
 
         wipe()
         hide_cursor()
