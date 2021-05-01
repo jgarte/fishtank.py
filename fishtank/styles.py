@@ -12,13 +12,13 @@ from pytermgui import color, bold, highlight, set_style
 
 
 def get_depth(level: int, colors: list[int]) -> int:
-    """ Return color based on depth from colors """
+    """Return color based on depth from colors"""
 
     return colors[min(level, len(colors) - 1)]
 
 
 def default() -> None:
-    """ Default color style """
+    """Default color style"""
 
     depth_colors = [60, 67, 74, 81]
 

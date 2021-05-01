@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+black fishtank && \
+pylint fishtank && \
+mypy --show-error-codes fishtank && \
+echo "Successfully linted things!"

@@ -27,7 +27,7 @@ from . import to_local, dbg
 
 
 def generate_newfish_dialog() -> None:
-    """ Menu for creating a new fish """
+    """Menu for creating a new fish"""
 
     cont = Container(width=32, shorten_elements=False)
 
@@ -84,7 +84,7 @@ def generate_newfish_dialog() -> None:
 
 
 def generate_input_dialog() -> None:
-    """ General dialog containing an InputField """
+    """General dialog containing an InputField"""
 
     cont = Container(width=width(), border=lambda: " -")
 
@@ -102,7 +102,7 @@ def generate_input_dialog() -> None:
 
 
 def generate_info_page() -> None:
-    """ Read-only information display """
+    """Read-only information display"""
 
     cont = Container()
     cont.static_width = 50
@@ -120,7 +120,7 @@ def generate_info_page() -> None:
 
 
 def generate(output: Callable[..., Any] = print) -> None:
-    """ Run all generators """
+    """Run all generators"""
 
     if not isdir(to_local("layouts")):
         mkdir(abspath(to_local("layouts")))

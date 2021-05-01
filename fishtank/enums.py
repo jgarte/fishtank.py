@@ -8,17 +8,15 @@ Enum classes (and types) for the program.
 """
 
 from enum import Enum, auto
-from typing import TypedDict
-
-PositionRange = tuple[int, int]
+from typing import Any
 
 
 class Event(Enum):
-    """ Enum class that *Event derive from. """
+    """Enum class that *Event derive from."""
 
 
 class AquariumEvent(Event):
-    """ Enum for Aquarium().notify() calls """
+    """Enum for Aquarium().notify() calls"""
 
     FOOD_AVAILABLE = auto()
     FOOD_DESTROYED = auto()
@@ -37,7 +35,7 @@ class FishEvent(Event):
 
 
 class FishType(Enum):
-    """ Types for fish """
+    """Types for fish"""
 
     BOTTOM_DWELLER = auto()
     MID_WATER = auto()
@@ -56,19 +54,5 @@ class BoundaryError(Enum):
     XY = auto()
 
 
-class FishProperties(TypedDict):
-    """
-    Fish property dictionary
-
-    note: pos should be of type Position,
-    but that causes circular imports. we
-    should figure that out.
-    """
-
-    pos: list[int]
-    stages: list[str]
-    type: FishType
-    species: str
-    variant: str
-    name: str
-    age: int
+PositionRange = tuple[int, int]
+FishProperties = dict[str, Any]

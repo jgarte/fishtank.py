@@ -2,8 +2,9 @@
     "Molly": {
         "stages": [">->","><'>",">-<'>"],
         "type": "mid_water",
+        "pigment": [232, 242],
         "speed": 3,
-        "pigment": [242],
+        "variant": "dalmatian",
         "variants": {
             "golden": {
                 "chance": 5,
@@ -34,65 +35,65 @@
         "specials": {
             "wobbly": {
                 "stages": ["-","-=","-<>"],
-                "pigment": [233,234,235],
+                "forced_pigment": [233,234,235],
                 "age": 2,
                 "speed": 3,
                 "message": "wobble wobble"
             },
             "winona": {
-                "pigment": [233,232,233,253],
+                "forced_pigment": [233,232,233,253],
                 "age": 1,
                 "speed": null,
                 "message": null
             },
             "ivory": {
-                "pigment": [255,255,255,255,255],
+                "forced_pigment": [255,255,255,255,255],
                 "age": 2,
                 "speed": 3
             },
             "jumbo": {
-                "pigment": [255,255,255,255,255],
+                "forced_pigment": [255,255,255,255,255],
                 "age": 2,
                 "speed": 2
             },
             "goldie": {
                 "stages": [".",">-","><>"],
-                "pigment": [232,232,220],
+                "forced_pigment": [232,232,220],
                 "age": 2,
                 "speed": 4
             },
             "strength": {
                 "stages": [">->",">-=>",">-<'>"],
-                "pigment": [233,232,233,232,253],
+                "forced_pigment": [233,232,233,232,253],
                 "age": 1,
                 "speed": 2
             },
             "mandarin": {
-                "pigment": [220,220,220,220,220],
+                "forced_pigment": [220,220,220,220,220],
                 "age": 2,
                 "speed": 3
             },
             "sunny": {
                 "stages": ["--",">->","><'>"],
-                "pigment": [220,220,220,220,220],
+                "forced_pigment": [220,220,220,220,220],
                 "age": 1,
                 "speed": 4
             },
             "tiny": {
                 "stages": [".","=-",">->"],
-                "pigment": [240],
+                "forced_pigment": [240],
                 "age": 1,
                 "speed": 5
             },
             "baby": {
                 "stages": [".","=-","><'>"],
-                "pigment": [240],
+                "forced_pigment": [240],
                 "age": 1,
                 "speed": 5
             },
             "mjoofin": {
                 "stages": [".","=-","><>"],
-                "pigment": [240,240,249],
+                "forced_pigment": [240,240,249],
                 "age": 1,
                 "speed": 5
             }
@@ -124,11 +125,10 @@
                 "dominance": 20,
                 "pigment": [104,62,232,255]
             }
-        },
-        "specials": {}
+        }
     },
     "Corydoras": {
-        "stages": [">,",">,-",">=,>"],
+        "stages": [">,-",">,>","><,>"],
         "type": "bottom_dweller",
         "pigment": [232, 251, 251, 232],
         "variants": {

@@ -36,34 +36,43 @@ from pytermgui.utils import (
 )
 
 from .classes import Fish, Aquarium, Position, Food
-from . import SPECIES_DATA, to_local, styles, dbg
+from . import SPECIES_DATA, to_local, styles
+
+try:
+    # these arent always used, but are handy to have imported.
+    # pylint: disable=unused-import
+    from .fish_types import Molly, Guppy, Corydoras
+    from .fish_types import random as random_from
+except ImportError:
+    pass
+
 from .enums import FishProperties, FishType
 
 
 class Menu:
-    """ Boilerplate class for menus """
+    """Boilerplate class for menus"""
 
     def __init__(self, interface: InterfaceManager):
-        """ Stub for init """
+        """Stub for init"""
 
         self.interface = interface
         self.setup()
         self.run()
 
     def setup(self) -> None:
-        """ Stub for menu setup """
+        """Stub for menu setup"""
 
     def run(self) -> None:
-        """ Stub for menu run """
+        """Stub for menu run"""
 
 
 # pylint: disable=fixme,unreachable,E1123,E1123,E1121,E1101,R0201,E1120
 # TODO: this needs to be rewritten, ^ is ugly as hell.
 class NewfishDialog(Menu):
-    """ Menu for creating a new ><> """
+    """Menu for creating a new ><>"""
 
     def setup(self) -> None:
-        """ Create objects & variables """
+        """Create objects & variables"""
 
         return
         self.types = list(SPECIES_DATA.keys())
@@ -107,13 +116,13 @@ class NewfishDialog(Menu):
 
     # pylint: disable=unused-argument
     def get_skin(self, depth: int, value: str) -> str:
-        """ Return skin of currently selected fish species """
+        """Return skin of currently selected fish species"""
 
         return ""
         return repr(self.showcase_fish)
 
     def update_fish(self) -> None:
-        """ Update showcase fish pigment & skin """
+        """Update showcase fish pigment & skin"""
 
         return
 
@@ -125,7 +134,7 @@ class NewfishDialog(Menu):
         fish.pigment = fish.get_pigment(fish.species_data)
 
     def change_name(self, caller: Type[BaseElement]) -> None:
-        """ Dialog to change the name of the fish """
+        """Dialog to change the name of the fish"""
 
         return
         self.menu.wipe()
@@ -156,7 +165,7 @@ class NewfishDialog(Menu):
         dialog.wipe()
 
     def show_info(self, caller: Type[BaseElement]) -> None:
-        """ Show information (stats) about a fish species """
+        """Show information (stats) about a fish species"""
 
         return
         self.menu.wipe()
@@ -185,7 +194,7 @@ class NewfishDialog(Menu):
         page.wipe()
 
     def choose_variant(self, caller: Type[BaseElement]) -> None:
-        """ Allow user to choose from variants """
+        """Allow user to choose from variants"""
 
         return
         cont = Container(width=40)
@@ -206,7 +215,7 @@ class NewfishDialog(Menu):
         self.variants.value = inner.selected[0].real_value
 
     def choose_age(self, caller: Type[BaseElement]) -> None:
-        """ Allow user to choose age """
+        """Allow user to choose age"""
 
         return
         cont = Container(width=40)
@@ -219,7 +228,7 @@ class NewfishDialog(Menu):
         self.age.value = cont.selected[0].value
 
     def create_fish(self, caller: Type[BaseElement]) -> None:
-        """ Create a new fish """
+        """Create a new fish"""
 
         return
         if not self.name.value == "None":
@@ -281,15 +290,15 @@ class NewfishDialog(Menu):
 
 
 class FeedingMenu(Menu):
-    """ Menu for feeding stuff """
+    """Menu for feeding stuff"""
 
     def setup(self) -> None:
-        """ Set up values """
+        """Set up values"""
 
         self.pos = Position()
 
     def select(self) -> None:
-        """ Show selection menu """
+        """Show selection menu"""
 
         key = ""
 
@@ -326,10 +335,10 @@ class FeedingMenu(Menu):
             self.pos.show()
 
     def choose_size(self) -> None:
-        """ not sure bout this one """
+        """not sure bout this one"""
 
     def finish(self) -> None:
-        """ Finalize & add """
+        """Finalize & add"""
 
         aquarium = self.interface.aquarium
         food = Food(aquarium, pos=self.pos)
@@ -338,7 +347,7 @@ class FeedingMenu(Menu):
         aquarium += food
 
     def run(self) -> None:
-        """ Run menu """
+        """Run menu"""
 
         self.select()
         self.choose_size()
@@ -346,20 +355,20 @@ class FeedingMenu(Menu):
 
 
 class InterfaceManager:
-    """ Manager class for all interface related operations """
+    """Manager class for all interface related operations"""
 
     def __init__(self) -> None:
         styles.default()
 
-        self.aquarium: Aquarium = Aquarium(_width=width()//2, _height=height()-15)
-        self.aquarium.fps: int = 25
+        self.aquarium: Aquarium = Aquarium(_width=width() // 2, _height=height() - 15)
+        self.aquarium.fps = 25
         self.aquarium.center()
 
         self._loop = True
         self._display_loop = Thread(target=self.display_loop, name="display_loop")
 
     def display_loop(self) -> None:
-        """ Main display loop """
+        """Main display loop"""
 
         print(self.aquarium)
         while self._loop:
@@ -367,7 +376,7 @@ class InterfaceManager:
             sleep(1 / 25)
 
     def getch_loop(self) -> None:
-        """ Main input loop """
+        """Main input loop"""
 
         while self._loop:
             key = getch()
@@ -408,7 +417,7 @@ class InterfaceManager:
                 print(self.aquarium)
 
     def show(self, menu: Type[Menu]) -> None:
-        """ Show menu object """
+        """Show menu object"""
 
         wipe()
         self.aquarium.pause()
@@ -419,10 +428,10 @@ class InterfaceManager:
         self.aquarium.pause(False)
 
     def generate_fish_properties(self) -> FishProperties:
-        """ Generate random fish properties """
+        """Generate random fish properties"""
 
         def get_random_from_generator(values: set[str]) -> str:
-            """ Helper for getting random items """
+            """Helper for getting random items"""
 
             items = list(values)
             start = 0
@@ -461,14 +470,19 @@ class InterfaceManager:
         return output
 
     def start(self) -> None:
-        """ Main loop of the program """
+        """Main loop of the program"""
 
         wipe()
         hide_cursor()
 
-        for _ in range(20):
-            properties = self.generate_fish_properties()
-            self.aquarium += Fish(self.aquarium, properties)
+        for _ in range(10):
+            self.aquarium += Fish(self.aquarium, random_from(Molly))
+
+        for _ in range(5):
+            self.aquarium += Fish(self.aquarium, random_from(Guppy))
+
+        for _ in range(5):
+            self.aquarium += Fish(self.aquarium, random_from(Corydoras))
 
         self._display_loop.start()
         self.getch_loop()

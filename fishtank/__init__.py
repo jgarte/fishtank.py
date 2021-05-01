@@ -23,7 +23,7 @@ fishtank {__version__}:
 
 
 def to_local(subpath: str) -> str:
-    """ Return joined path of dirname(__file__) and subpath """
+    """Return joined path of dirname(__file__) and subpath"""
 
     return os.path.join(os.path.dirname(__file__), subpath)
 
@@ -53,7 +53,7 @@ def get_caller(depth: int = 1) -> str:
 
 
 def dbg(*args: Any, end: str = "\n") -> None:
-    """ Write information to log file """
+    """Write information to log file"""
 
     if args == tuple():
         args = (get_caller(2),)

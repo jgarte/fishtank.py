@@ -15,7 +15,7 @@ from math import sqrt
 from random import randint
 from typing import Union, Generator, Optional, Any
 
-from pytermgui import gradient, real_length, clean_ansi, color
+from pytermgui import gradient, real_length, clean_ansi
 from pytermgui import Container, BaseElement, padding_label
 
 # `dbg` is usually not used in pushed code, but is often called  otherwise.
@@ -31,7 +31,7 @@ from .enums import (
 
 
 class Position:
-    """ Class for easier & more legible positions """
+    """Class for easier & more legible positions"""
 
     # having variables named x and y makes most sense
     # pylint: disable=invalid-name
@@ -43,7 +43,7 @@ class Position:
             self.y = y
 
     def __eq__(self, other: object) -> bool:
-        """ Return if two Position objects are equal """
+        """Return if two Position objects are equal"""
 
         if not isinstance(other, Position):
             raise NotImplementedError()
@@ -51,7 +51,7 @@ class Position:
         return self.x == other.x and self.y == other.y
 
     def __gt__(self, other: object) -> bool:
-        """ Return if self.x > other.x """
+        """Return if self.x > other.x"""
 
         if not isinstance(other, Position):
             raise NotImplementedError()
@@ -59,7 +59,7 @@ class Position:
         return self.x > other.x
 
     def __add__(self, other: object) -> Position:
-        """ Return new Position containing added values """
+        """Return new Position containing added values"""
 
         if not isinstance(other, Position):
             raise NotImplementedError(f"Cannot add {type(other)} object to Position!")
@@ -67,7 +67,7 @@ class Position:
         return Position(self.x + other.x, self.y + other.y)
 
     def __sub__(self, other: object) -> Position:
-        """ Return new Position containing substracted values """
+        """Return new Position containing substracted values"""
 
         if not isinstance(other, Position):
             raise NotImplementedError()
@@ -75,12 +75,12 @@ class Position:
         return Position(self.x - other.x, self.y - other.y)
 
     def __repr__(self) -> str:
-        """ Return string of self """
+        """Return string of self"""
 
         return f"Position({self.x},{self.y})"
 
     def __iter__(self) -> Generator[int, None, None]:
-        """ Yield values of self.x, self.y; allows: x, y = Position() """
+        """Yield values of self.x, self.y; allows: x, y = Position()"""
 
         for v in self.x, self.y:
             yield v
@@ -89,41 +89,42 @@ class Position:
         return True
 
     def show(self) -> None:
-        """ Print self """
+        """Print self"""
 
         print(f"\033[{self.y};{self.x}Hx")
 
     def wipe(self) -> None:
-        """ Wipe character at self.x & self.y """
+        """Wipe character at self.x & self.y"""
 
         print(f"\033[{self.y};{self.x}H ")
 
     def distance_to(self, other: object) -> float:
-        """ Return distance from self to other """
+        """Return distance from self to other"""
 
         if not isinstance(other, Position):
             raise NotImplementedError()
 
         return sqrt((other.x - self.x) ** 2 + (other.y - self.y) ** 2)
 
+
 class Boundary:
-    """ Boundary made up by two Position objects, non-inclusive of borders """
+    """Boundary made up by two Position objects, non-inclusive of borders"""
 
     def __init__(self, pos1: Position, pos2: Position) -> None:
-        """ Initialize object """
+        """Initialize object"""
 
         self.start = pos1
         self.end = pos2
 
     def __iter__(self) -> Generator[int, None, None]:
-        """ Iterate start and end positions """
+        """Iterate start and end positions"""
 
         for pos in [self.start, self.end]:
             for coord in pos:
                 yield coord
 
     def _contains_coordinates(self, other: Position) -> bool:
-        """ Helper to get if self contains other """
+        """Helper to get if self contains other"""
 
         error = self.error(other)
 
@@ -133,13 +134,13 @@ class Boundary:
         return False
 
     def positions(self) -> Generator[Position, None, None]:
-        """ Iterate positions """
+        """Iterate positions"""
 
         for pos in self.start, self.end:
             yield pos
 
     def error(self, other: Position) -> Optional[BoundaryError]:
-        """ Get BoundaryError from other in self"""
+        """Get BoundaryError from other in self"""
 
         startx, starty = self.start
         endx, endy = self.end
@@ -161,7 +162,7 @@ class Boundary:
         return BoundaryError.Y
 
     def contains(self, other: Union[Boundary, Position]) -> bool:
-        """ Return whether self contains other """
+        """Return whether self contains other"""
 
         if isinstance(other, Position):
             return self._contains_coordinates(other)
@@ -170,14 +171,16 @@ class Boundary:
         return self._contains_coordinates(pos1) and self._contains_coordinates(pos2)
 
     def show(self) -> None:
-        """ Print coordinates """
+        """Print coordinates"""
 
         self.start.show()
         self.end.show()
 
-    def update(self, start: Optional[Position] = None, end: Optional[Position] = None):
-        """ Update coordinates """
-        
+    def update(
+        self, start: Optional[Position] = None, end: Optional[Position] = None
+    ) -> None:
+        """Update coordinates"""
+
         if start is not None:
             assert isinstance(start, Position)
 
@@ -188,10 +191,11 @@ class Boundary:
 
             self.end = end
 
-    def __repr__(self):
-        """ Stringify object """
+    def __repr__(self) -> str:
+        """Stringify object"""
 
         return f"Boundary({self.start.x}, {self.start.y}, {self.end.x}, {self.end.y})"
+
 
 class Fish:
     r"""
@@ -210,10 +214,11 @@ class Fish:
     # it makes sense for this class to have as many attributes as it does.
     # pylint: disable=too-many-instance-attributes
     def __init__(self, parent: Aquarium, properties: FishProperties):
-        """ Set up instance """
+        """Set up instance"""
 
         self.path: list[Position] = []
         self.pigment: list[int] = []
+        self.forced_pigment: Optional[list[int]] = None
         self.skin_length: int = 0
         self.stages: list[str]
         self.bounds: Optional[Boundary] = None
@@ -221,7 +226,6 @@ class Fish:
         self.variant: str
         self.species: str
         self.age: int
-
 
         self._pos: Optional[Position] = None
         self._follow_target: Optional[Union[Fish, Food]] = None
@@ -235,6 +239,7 @@ class Fish:
         self.heading_left = -1
         self.heading_right = 1
 
+        # dbg(gradient(repr(self), [int(col) for col in self.pigment]))
         self.update()
 
     def _set_properties(self, properties: FishProperties) -> None:
@@ -244,6 +249,9 @@ class Fish:
                 if not isinstance(value, list):
                     raise NotImplementedError()
 
+                if not all(isinstance(v, int) for v in value):
+                    raise NotImplementedError()
+
                 posx, posy = value
                 value = Position(posx, posy)
 
@@ -251,7 +259,7 @@ class Fish:
 
     @staticmethod
     def _reverse_skin(skin: str) -> str:
-        """ Return char by char reversed version of skin """
+        """Return char by char reversed version of skin"""
 
         reversed_skin = ""
         reversible = ["<>", "[]", "{}", "()", "/\\", "db", "qp"]
@@ -266,19 +274,18 @@ class Fish:
             reversed_skin += new
 
         return reversed_skin
-    
+
     @property
-    def pos(self) -> None:
-        """ Return position """
+    def pos(self) -> Optional[Position]:
+        """Return position"""
 
         return self._pos
 
     @pos.setter
     def pos(self, value: Position) -> None:
-        """ Set new position and update bounds """
+        """Set new position and update bounds"""
 
         self._pos = value
-
         start, end = self._get_bounds()
 
         if self.bounds is not None:
@@ -287,8 +294,11 @@ class Fish:
         else:
             self.bounds = Boundary(start, end)
 
-    def _get_bounds(self) -> tuple[int]:
-        """ Return boundaries of object """
+    def _get_bounds(self) -> tuple[Position, Position]:
+        """Return boundaries of object"""
+
+        if self.pos is None:
+            raise TypeError("self.pos cannot be None during _get_bounds.")
 
         posx, posy = self.pos
         start = Position(posx, posy)
@@ -312,53 +322,64 @@ class Fish:
         # skins are right-headed
         if self._heading is self.heading_left:
             skin = self._reverse_skin(_skin)
-            pigment = list(reversed(self.pigment[: len(skin) - 1]))
+            pigment = list(reversed(self.pigment))
 
         else:
             skin = _skin
-            pigment = self.pigment[: len(skin) - 1]
+            pigment = self.pigment
 
         return gradient(skin, pigment)
 
     def _position_valid(self, pos: Position) -> bool:
-        """ Return validity (is within self.parent.bounds) of pos """
+        """Return validity (is within self.parent.bounds) of pos
+        This currently doesn't do anything, and it might not be
+        needed in the future."""
+
+        if pos:
+            pass
 
         if self.parent is None:
             return False
 
         return True
 
-        posx, posy = pos
-        start_pos = Position(posx, posy)
-        end_pos = Position(posx + real_length(self.skin), posy)
-
-        start_error = self.parent.bounds.error(start_pos)
-        end_error = self.parent.bounds.error(end_pos)
-
-        if start_error is None and end_error is None:
-            return True
-
-        return False
-
     def get_pigment(self) -> list[int]:
-        """ Get pigmentation using self.variant"""
+        """Get pigmentation using self.variant"""
 
-        # this is ugly, but outsourcing it to a function would be uglier.
-        variant_data = SPECIES_DATA[self.species]["variants"].get(self.variant)
-        if variant_data:
+        if self.forced_pigment is not None:
+            return self.forced_pigment
+
+        if (available := self.pigment) is not None:
+            if available == []:
+                dbg(
+                    {
+                        key: value
+                        for key, value in self.__dict__.items()
+                        if not key == "parent"
+                    }
+                )
+                return []
+
             pigment = []
-            available = variant_data.get("pigment")
             length = max(len(clean_ansi(l)) for l in self.stages)
 
             for _ in range(length):
-                pigment.append(available[randint(0, len(available) - 1)])
+                if len(available) > 1:
+                    index = randint(0, len(available) - 1)
+                else:
+                    index = 0
+
+                pigment.append(available[index])
 
             return pigment
 
         return self.pigment
 
     def get_path(self, pos: Position) -> list[Position]:
-        """ Get position to pos, return it as a list of Position-s """
+        """Get position to pos, return it as a list of Position-s"""
+
+        if self.pos is None:
+            raise TypeError("self.pos cannot be None while getting path.")
 
         startx, starty = self.pos
         endx, endy = pos
@@ -402,17 +423,20 @@ class Fish:
         return path
 
     def get_new_path(self) -> list[Position]:
-        """ Get new target according to self.type
+        """Get new target according to self.type
         Note: this should handle different FishTypes
         """
 
         return self.get_path(self.parent.get_next_position(self))
 
     def distance_to(self, other: Union[Food, Fish]) -> float:
-        """ Return distance between two objects """
+        """Return distance between two objects"""
 
         if type(other) not in [Food, Fish]:
             raise NotImplementedError(f"Why are we getting distance to {type(other)}?")
+
+        if self.pos is None:
+            raise TypeError("self.pos cannot be None during distance_to")
 
         if self.pos > other.pos:
             offset = 2
@@ -422,7 +446,7 @@ class Fish:
         return self.pos.distance_to(other.pos) - offset
 
     def consume_food(self) -> bool:
-        """ Try to consume food """
+        """Try to consume food"""
 
         if self._follow_target is None:
             return False
@@ -430,7 +454,13 @@ class Fish:
         if not isinstance(self._follow_target, Food):
             return False
 
+        if self.pos is None:
+            raise TypeError("self.pos cannot be None during consume_food")
+
         food = self._follow_target
+
+        if food.pos is None:
+            raise TypeError("food.pos cannot be None during consume_food")
 
         if self._heading is self.heading_right:
             target_distance = self.skin_length - 1
@@ -449,10 +479,13 @@ class Fish:
 
         return False
 
-    def update(self) -> Position:
-        """ Do next position update """
+    def update(self) -> Optional[Position]:
+        """Do next position update"""
 
         if self._follow_target is not None:
+            if self._follow_target.pos is None:
+                raise TypeError("self._follow_target.pos cannot be None during update")
+
             self.path = self.get_path(self._follow_target.pos)
 
         if self.consume_food():
@@ -477,12 +510,16 @@ class Fish:
                 self._follow_target = food
 
             else:
-                self.path += [self.pos] * randint(3, 10) + self.get_new_path()
+                path = []
+                if self.pos is not None:
+                    path += [self.pos] * randint(3, 10)
+
+                self.path += path + self.get_new_path()
 
         return self.pos
 
     def notify(self, event: Event, data: Optional[Any]) -> None:
-        """ Notify fish of some event """
+        """Notify fish of some event"""
 
         if event == AquariumEvent.FOOD_DESTROYED:
             if data is not self._follow_target:
@@ -501,28 +538,36 @@ class Fish:
                 self._follow_target = data
 
     def wipe(self) -> None:
-        """ Wipe fish's skin at its current position """
+        """Wipe fish's skin at its current position"""
+
+        if self.pos is None:
+            return
 
         posx, posy = self.pos
         print(f"\033[{posy};{posx}H" + real_length(self.skin) * " ")
 
     def show(self) -> None:
-        """ Show repr(self) at self.pos """
+        """Show repr(self) at self.pos"""
+
+        if self.pos is None:
+            return
 
         posx, posy = self.pos
         print(f"\033[{posy};{posx}H" + repr(self))
 
+
 class Food:
-    """ fud """
+    """fud"""
 
     # it makes sense for this class to have this many attributes.
     # pylint: disable=too-many-instance-attributes
     def __init__(
         self, parent: Aquarium, health: int = 5, pos: Optional[Position] = None
     ):
-        """ Initialize object """
+        """Initialize object"""
 
         self.bounds = Boundary(Position(0, 0), Position(0, 0))
+        self.health: int = health
         self.skin: str = "#"
         self.path: list[Position] = []
         self.counter: int = 0
@@ -530,39 +575,40 @@ class Food:
         self._idle_framecount: int = 0
 
         if pos is None:
-            self.pos = Position()
+            self._pos = Position()
         else:
-            self.pos = pos
+            self._pos = pos
 
-        self.health = health
         self.parent = parent
-    
+
     @property
-    def pos(self):
-        """ Get self._pos """
+    def pos(self) -> Optional[Position]:
+        """Get self._pos"""
 
         return self._pos
 
     @pos.setter
-    def pos(self, value: Position):
-        """ Set self._pos """
+    def pos(self, value: Position) -> None:
+        """Set self._pos"""
 
         self._pos = value
-        self.bounds.update(self.pos, self.pos + Position(x=real_length(self.skin)))
+
+        if self.pos is not None:
+            self.bounds.update(self.pos, self.pos + Position(x=real_length(self.skin)))
 
     def stop(self) -> None:
-        """ Stop updates of object """
+        """Stop updates of object"""
 
         self._is_stopped = True
 
     def destroy(self) -> None:
-        """ Remove self from parent """
+        """Remove self from parent"""
 
         self.parent.notify(AquariumEvent.FOOD_DESTROYED, self)
         self.wipe()
 
     def update(self) -> None:
-        """ Update position & path"""
+        """Update position & path"""
 
         # destroy at 0 health of when the object has been idle for 10 seconds
         if self.health <= 0 or self._idle_framecount >= self.parent.fps * 10:
@@ -581,6 +627,9 @@ class Food:
 
         x_change = randint(-1, 1)
 
+        if self.pos is None:
+            raise TypeError("self.pos cannot be None during update.")
+
         target_pos = self.pos + Position(x_change, 1)
         error = self.parent.bounds.error(target_pos)
 
@@ -598,20 +647,27 @@ class Food:
         self.pos = target_pos
 
     def wipe(self) -> None:
-        """ Clear char at pos """
+        """Clear char at pos"""
+
+        if self.pos is None:
+            return
 
         posx, posy = self.pos
         print(f"\033[{posy};{posx}H" + real_length(self.skin) * " ")
 
     def show(self) -> None:
-        """ Print self to pos """
+        """Print self to pos"""
+
+        if self.pos is None:
+            return
 
         posx, posy = self.pos
         print(f"\033[{posy};{posx}H" + self.skin)
 
-# as long as pytermgui is not type this error would occur.
+
+# as long as pytermgui is not typed this error would occur.
 class Aquarium(Container):  # type: ignore[misc]
-    """ An object to store & update fish """
+    """An object to store & update fish"""
 
     # pylint: disable=invalid-name
     def __init__(
@@ -620,7 +676,7 @@ class Aquarium(Container):  # type: ignore[misc]
         _width: int = 70,
         _height: int = 25,
     ):
-        """ Set up object """
+        """Set up object"""
 
         super().__init__(width=_width, height=_height)
 
@@ -648,15 +704,14 @@ class Aquarium(Container):  # type: ignore[misc]
         self.center()
         self.bounds = self._get_bounds()
 
-
     def __iter__(self) -> Generator[Union[Fish, Food], None, None]:
-        """ Iterate through fish children """
+        """Iterate through fish children"""
 
         for obj in self.objects:
             yield obj
 
     def __add__(self, other: Union[BaseElement, Fish]) -> Aquarium:
-        """ Add BaseElement or Fish to contents """
+        """Add BaseElement or Fish to contents"""
 
         if issubclass(type(other), BaseElement):
             self._add_element(other)
@@ -677,12 +732,12 @@ class Aquarium(Container):  # type: ignore[misc]
         return self
 
     def __iadd__(self, other: Union[BaseElement, Fish]) -> Aquarium:
-        """ Execute __add__, return self """
+        """Execute __add__, return self"""
 
         return self.__add__(other)
 
     def _get_bounds(self) -> Boundary:
-        """ Return boundaries of object """
+        """Return boundaries of object"""
 
         x, y = self.pos
         start = Position(x + 1, y + 1)
@@ -691,7 +746,7 @@ class Aquarium(Container):  # type: ignore[misc]
         return Boundary(start, end)
 
     def _get_position_in_bounds(self, obj: Optional[Fish] = None) -> Position:
-        """ Return a Position() object that is guaranteed to be within bounds """
+        """Return a Position() object that is guaranteed to be within bounds"""
 
         startx, starty, endx, endy = self.bounds
 
@@ -702,21 +757,21 @@ class Aquarium(Container):  # type: ignore[misc]
         return Position(randint(startx + 1, endx - 1), randint(starty + 1, endy - 1))
 
     def foods(self) -> Generator[Food, None, None]:
-        """ Iterate through foods """
+        """Iterate through foods"""
 
         for obj in self.objects:
             if isinstance(obj, Food):
                 yield obj
 
     def fish(self) -> Generator[Fish, None, None]:
-        """ Iterate through fish """
+        """Iterate through fish"""
 
         for obj in self.objects:
             if isinstance(obj, Fish):
                 yield obj
 
     def notify(self, event: AquariumEvent, data: Optional[Any] = None) -> None:
-        """ Notify Aquarium of events """
+        """Notify Aquarium of events"""
 
         if event is AquariumEvent.FOOD_DESTROYED:
             # NOTE: this should never be raised, but even then
@@ -738,16 +793,19 @@ class Aquarium(Container):  # type: ignore[misc]
             self.target_pos = None
 
     def pause(self, value: bool = True) -> None:
-        """ Pause updates """
+        """Pause updates"""
 
         self._is_paused = value
 
     def fish_at(self, pos: Position) -> Optional[Fish]:
-        """ Return the thing that is at the position given """
+        """Return the thing that is at the position given"""
 
         px, py = pos
         for e in self.objects:
             if not isinstance(e, Fish):
+                continue
+
+            if e.bounds is None:
                 continue
 
             startx, starty, endx, endy = e.bounds
@@ -757,12 +815,15 @@ class Aquarium(Container):  # type: ignore[misc]
         return None
 
     def contains(self, obj: Fish) -> bool:
-        """ Return if obj is contained within self """
+        """Return if obj is contained within self"""
+
+        if obj.bounds is None or self.bounds is None:
+            return False
 
         return self.bounds.contains(obj.bounds)
 
     def move(self, pos: list[int], _wipe: bool = False) -> Aquarium:
-        """ Implement move method using Position-s """
+        """Implement move method using Position-s"""
 
         self.pos = Position(xy=pos)
         if _wipe:
@@ -772,24 +833,24 @@ class Aquarium(Container):  # type: ignore[misc]
         return self
 
     def get_next_position(self, obj: Optional[Fish] = None) -> Position:
-        """ Return a target position for fish """
+        """Return a target position for fish"""
 
         if self.target_pos is None:
             minx, miny, maxx, maxy = self.bounds
             if obj is not None:
                 maxx -= obj.skin_length + 1
 
-            newx = randint(minx+1, maxx-1)
-            newy = randint(miny+1, maxy-1)
+            newx = randint(minx + 1, maxx - 1)
+            newy = randint(miny + 1, maxy - 1)
             self.target_pos = Position(newx, newy)
 
         return self.target_pos
 
     def update(self) -> None:
-        """ Update elements in self.objects"""
+        """Update elements in self.objects"""
 
         def show_element(element: Union[Food, Fish]) -> None:
-            """ Show element """
+            """Show element"""
 
             element.wipe()
             element.update()
