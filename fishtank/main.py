@@ -32,13 +32,11 @@ def exit_program() -> None:
 def main() -> None:
     """main method"""
 
-    # overwrite logfile
-    open(to_local("log"), "w").close()
-
     if not os.path.isfile(to_local("fish_types.py")):
         print("generating")
         generate_fish(to_local("data/species.json"))
 
+    open(to_local("log"), "w").close()
     generate(output=dbg)
     dbg("starting interface...")
     InterfaceManager().start()

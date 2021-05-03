@@ -361,13 +361,6 @@ class Fish:
 
         if (available := self.pigment) is not None:
             if available == []:
-                dbg(
-                    {
-                        key: value
-                        for key, value in self.__dict__.items()
-                        if not key == "parent"
-                    }
-                )
                 return []
 
             pigment = []

@@ -29,7 +29,7 @@ class Molly():
 
 These can then be used in interface.py as:
 
-```py
+```
 from fish_types import Molly
 aquarium = Aquarium()
 aquarium += Fish(aquarium, Molly.Golden_Panda)

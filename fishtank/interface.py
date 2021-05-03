@@ -13,7 +13,7 @@ from __future__ import annotations
 from typing import Type
 from threading import Thread
 from random import randint
-from time import sleep
+from time import sleep, time
 
 from pytermgui import (
     BaseElement,
@@ -41,9 +41,13 @@ from . import SPECIES_DATA, to_local, styles
 try:
     # these arent always used, but are handy to have imported.
     # pylint: disable=unused-import
-    from .fish_types import Molly, Guppy, Corydoras
-    from .fish_types import random as random_from
+    from .fishfile import Molly, Guppy, Corydoras
+    from .fishfile import random as random_from
+
 except ImportError:
+    # this module may not be available, but the program will
+    # crash when that's the case and the fish_generator isn't
+    # called to fix it.
     pass
 
 from .enums import FishProperties, FishType
@@ -370,10 +374,15 @@ class InterfaceManager:
     def display_loop(self) -> None:
         """Main display loop"""
 
+        sleep_duration = 0.0
+
         print(self.aquarium)
         while self._loop:
+            start = time()
             self.aquarium.update()
-            sleep(1 / 25)
+            duration = time() - start
+            sleep_duration = max([1 / 45 - duration, 0.0])
+            sleep(sleep_duration)
 
     def getch_loop(self) -> None:
         """Main input loop"""
@@ -478,11 +487,11 @@ class InterfaceManager:
         for _ in range(10):
             self.aquarium += Fish(self.aquarium, random_from(Molly))
 
-        for _ in range(5):
-            self.aquarium += Fish(self.aquarium, random_from(Guppy))
+        # for _ in range(5):
+        # self.aquarium += Fish(self.aquarium, random_from(Guppy))
 
-        for _ in range(5):
-            self.aquarium += Fish(self.aquarium, random_from(Corydoras))
+        # for _ in range(5):
+        # self.aquarium += Fish(self.aquarium, random_from(Corydoras))
 
         self._display_loop.start()
         self.getch_loop()
