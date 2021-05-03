@@ -297,13 +297,16 @@ class Fish:
         else:
             self.bounds = Boundary(start, end)
 
-    def _get_bounds(self) -> tuple[Position, Position]:
+    def _get_bounds(self, pos: Optional[Position] = None) -> tuple[Position, Position]:
         """Return boundaries of object"""
 
         if self.pos is None:
             raise TypeError("self.pos cannot be None during _get_bounds.")
 
-        posx, posy = self.pos
+        if pos is None:
+            pos = self.pos
+
+        posx, posy = pos
         start = Position(posx, posy)
         end = Position(posx + real_length(self.skin), posy)
 
@@ -334,13 +337,21 @@ class Fish:
         This currently doesn't do anything, and it might not be
         needed in the future."""
 
-        if pos:
-            pass
-
         if self.parent is None:
             return False
 
-        return True
+        posx, posy = pos
+        start_pos = Position(posx, posy)
+        end_pos = Position(posx + real_length(self.skin), posy)
+
+        start_error = self.parent.bounds.error(start_pos)
+        end_error = self.parent.bounds.error(end_pos)
+        valid_errors = [BoundaryError.Y, BoundaryError.XY, None]
+
+        if start_error in valid_errors and end_error in valid_errors:
+            return True
+
+        return False
 
     def get_pigment(self) -> list[int]:
         """Get pigmentation using self.variant"""
@@ -374,7 +385,7 @@ class Fish:
 
         return self.pigment
 
-    def get_path(self, pos: Position) -> list[Position]:
+    def get_path(self, pos: Position) -> list[tuple[Position, int]]:
         """Get position to pos, return it as a list of Position-s"""
 
         if self.pos is None:
@@ -392,9 +403,9 @@ class Fish:
         intbuff_y = 1 if starty < endy else -1
 
         if intbuff_x == 1:
-            self._heading = self.heading_right
+            heading = self.heading_right
         else:
-            self._heading = self.heading_left
+            heading = self.heading_left
 
         # error
         error = diffx + diffy
@@ -405,7 +416,7 @@ class Fish:
             if not self._position_valid(pos):
                 break
 
-            path.append(pos)
+            path.append((pos, heading))
             if startx == endx and starty == endy:
                 break
 
@@ -421,7 +432,7 @@ class Fish:
 
         return path
 
-    def get_new_path(self) -> list[Position]:
+    def get_new_path(self) -> list[tuple[Position, int]]:
         """Get new target according to self.type
         Note: this should handle different FishTypes
         """
@@ -492,10 +503,13 @@ class Fish:
             return self.pos
 
         if len(self.path) > 1:
+            # There is an extra element at the start of path if following,
+            # as the path gets regenerated every update. If we don't do an
+            # extra pop, the fish will stay in place.
             if self._follow_target is not None:
                 self.path.pop(0)
 
-            self.pos = self.path.pop(0)
+            self.pos, self._heading = self.path.pop(0)
 
         else:
             self.parent.notify(AquariumEvent.TARGET_REACHED, self)
@@ -512,9 +526,15 @@ class Fish:
             else:
                 path = []
                 if self.pos is not None:
-                    path += [self.pos] * randint(3, 10)
+                    heading = self._heading
 
-                self.path += path + self.get_new_path()
+                    for i in range(randint(3, 10)):
+                        if i >= 4 and i % 3 == 0:
+                            heading = heading * -1
+
+                        path += [(self.pos, heading)]
+
+                self.path = path + self.get_new_path()
 
         return self.pos
 
