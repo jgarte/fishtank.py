@@ -24,18 +24,13 @@ class AquariumEvent(Event):
 
 
 class FishEvent(Event):
-    """
-    Enum for Fish().notify() calls, currently empty
+    """ Enum for Fish().notify() calls """
 
-    Note:
-        it could be neat to have a FOOD_ADDED element here,
-        which would be used through notify() to find path to
-        new food.
-    """
+    AGE_CHANGED = auto()
 
 
 class FishType(Enum):
-    """Types for fish"""
+    """ Types for fish """
 
     BOTTOM_DWELLER = auto()
     MID_WATER = auto()
@@ -43,11 +38,7 @@ class FishType(Enum):
 
 
 class BoundaryError(Enum):
-    """
-    Enum currently limited to Aquarium.bound_error()
-    TODO:
-        - Bounds should be their own class, not an Aquarium function.
-    """
+    """ Enum currently for Boundary() object errors """
 
     X = auto()
     Y = auto()

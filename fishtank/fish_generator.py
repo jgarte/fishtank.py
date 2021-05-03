@@ -151,5 +151,5 @@ def generate_fish(path: str) -> None:
                 lines += inner_lines
 
     # print(lines)
-    with open(to_local("fish_types.py"), "w") as outfile:
+    with open(to_local("fishfile.py"), "w") as outfile:
         outfile.write(FILE_TEMPLATE + "\n".join(lines))

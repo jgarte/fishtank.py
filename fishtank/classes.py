@@ -24,6 +24,7 @@ from . import SPECIES_DATA, dbg
 from .enums import (
     Event,
     AquariumEvent,
+    FishEvent,
     BoundaryError,
     FishType,
     FishProperties,
@@ -216,7 +217,7 @@ class Fish:
     def __init__(self, parent: Aquarium, properties: FishProperties):
         """Set up instance"""
 
-        self.path: list[Position] = []
+        self.path: list[tuple[Position, int]] = []
         self.pigment: list[int] = []
         self.forced_pigment: Optional[list[int]] = None
         self.skin_length: int = 0
@@ -228,6 +229,7 @@ class Fish:
         self.age: int
 
         self._pos: Optional[Position] = None
+        self._skins: tuple[str, str]
         self._follow_target: Optional[Union[Fish, Food]] = None
         self._food: Optional[Food] = None
         self._heading: int = 0
@@ -239,7 +241,8 @@ class Fish:
         self.heading_left = -1
         self.heading_right = 1
 
-        # dbg(gradient(repr(self), [int(col) for col in self.pigment]))
+        # trigger event to set skins
+        self.notify(FishEvent.AGE_CHANGED, self)
         self.update()
 
     def _set_properties(self, properties: FishProperties) -> None:
@@ -315,17 +318,13 @@ class Fish:
             I get around to the rewrite.
         """
 
-        _skin = self.stages[self.age]
-        self.skin = _skin
-        self.skin_length = real_length(_skin)
-
         # skins are right-headed
         if self._heading is self.heading_left:
-            skin = self._reverse_skin(_skin)
+            skin = self._skins[1]
             pigment = list(reversed(self.pigment))
 
         else:
-            skin = _skin
+            skin = self._skins[0]
             pigment = self.pigment
 
         return gradient(skin, pigment)
@@ -474,6 +473,7 @@ class Fish:
 
             if randint(0, 10) == 1 and self.age < len(self.stages) - 1:
                 self.age += 1
+                self.notify(FishEvent.AGE_CHANGED, self)
 
             return True
 
@@ -536,6 +536,11 @@ class Fish:
 
             if self.distance_to(data) < 20:
                 self._follow_target = data
+
+        elif event == FishEvent.AGE_CHANGED:
+            _skin = self.stages[self.age]
+            self._skins = _skin, self._reverse_skin(_skin)
+            self.skin = self._skins[0]
 
     def wipe(self) -> None:
         """Wipe fish's skin at its current position"""

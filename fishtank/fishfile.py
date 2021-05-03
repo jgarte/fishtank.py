@@ -16,20 +16,24 @@ For more information, check out fishtank.fish_generator!
 from random import randint
 from .enums import FishProperties, FishType
 
+
 def random(cls: object) -> FishProperties:
     """ Return a random element from class """
 
-    options = [attr for attr in dir(cls) if not attr.startswith('_') and not attr == "random"]
+    options = [
+        attr for attr in dir(cls) if not attr.startswith("_") and not attr == "random"
+    ]
     output = getattr(cls, options[randint(0, len(options) - 1)])
- 
+
     # mypy complains that output is of type Any, but we know it cannot be.
     return output  # type: ignore
+
 
 class Molly:
     """ Organizer class for variaties of Molly """
 
     Molly: FishProperties = {
-        "stages": ['>->', "><'>", ">-<'>"],
+        "stages": [">->", "><'>", ">-<'>"],
         "type": FishType.MID_WATER,
         "pigment": [232, 242],
         "speed": 3,
@@ -40,7 +44,7 @@ class Molly:
     }
 
     Golden: FishProperties = {
-        "stages": ['>->', "><'>", ">-<'>"],
+        "stages": [">->", "><'>", ">-<'>"],
         "type": FishType.MID_WATER,
         "pigment": [214, 220, 221],
         "speed": 3,
@@ -53,7 +57,7 @@ class Molly:
     }
 
     Golden_Panda: FishProperties = {
-        "stages": ['>->', "><'>", ">-<'>"],
+        "stages": [">->", "><'>", ">-<'>"],
         "type": FishType.MID_WATER,
         "pigment": [214, 220, 221, 232, 234],
         "speed": 3,
@@ -66,7 +70,7 @@ class Molly:
     }
 
     Silver: FishProperties = {
-        "stages": ['>->', "><'>", ">-<'>"],
+        "stages": [">->", "><'>", ">-<'>"],
         "type": FishType.MID_WATER,
         "pigment": [249, 252, 255],
         "speed": 3,
@@ -79,7 +83,7 @@ class Molly:
     }
 
     Black: FishProperties = {
-        "stages": ['>->', "><'>", ">-<'>"],
+        "stages": [">->", "><'>", ">-<'>"],
         "type": FishType.MID_WATER,
         "pigment": [232, 233, 237],
         "speed": 3,
@@ -92,7 +96,7 @@ class Molly:
     }
 
     Dalmatian: FishProperties = {
-        "stages": ['>->', "><'>", ">-<'>"],
+        "stages": [">->", "><'>", ">-<'>"],
         "type": FishType.MID_WATER,
         "pigment": [232, 234, 235, 247, 251],
         "speed": 3,
@@ -105,7 +109,7 @@ class Molly:
     }
 
     Wobbly: FishProperties = {
-        "stages": ['-', '-=', '-<>'],
+        "stages": ["-", "-=", "-<>"],
         "type": FishType.MID_WATER,
         "pigment": [232, 242],
         "speed": 3,
@@ -118,7 +122,7 @@ class Molly:
     }
 
     Winona: FishProperties = {
-        "stages": ['>->', "><'>", ">-<'>"],
+        "stages": [">->", "><'>", ">-<'>"],
         "type": FishType.MID_WATER,
         "pigment": [232, 242],
         "speed": None,
@@ -131,7 +135,7 @@ class Molly:
     }
 
     Ivory: FishProperties = {
-        "stages": ['>->', "><'>", ">-<'>"],
+        "stages": [">->", "><'>", ">-<'>"],
         "type": FishType.MID_WATER,
         "pigment": [232, 242],
         "speed": 3,
@@ -143,7 +147,7 @@ class Molly:
     }
 
     Jumbo: FishProperties = {
-        "stages": ['>->', "><'>", ">-<'>"],
+        "stages": [">->", "><'>", ">-<'>"],
         "type": FishType.MID_WATER,
         "pigment": [232, 242],
         "speed": 2,
@@ -155,7 +159,7 @@ class Molly:
     }
 
     Goldie: FishProperties = {
-        "stages": ['.', '>-', '><>'],
+        "stages": [".", ">-", "><>"],
         "type": FishType.MID_WATER,
         "pigment": [232, 242],
         "speed": 4,
@@ -167,7 +171,7 @@ class Molly:
     }
 
     Strength: FishProperties = {
-        "stages": ['>->', '>-=>', ">-<'>"],
+        "stages": [">->", ">-=>", ">-<'>"],
         "type": FishType.MID_WATER,
         "pigment": [232, 242],
         "speed": 2,
@@ -179,7 +183,7 @@ class Molly:
     }
 
     Mandarin: FishProperties = {
-        "stages": ['>->', "><'>", ">-<'>"],
+        "stages": [">->", "><'>", ">-<'>"],
         "type": FishType.MID_WATER,
         "pigment": [232, 242],
         "speed": 3,
@@ -191,7 +195,7 @@ class Molly:
     }
 
     Sunny: FishProperties = {
-        "stages": ['--', '>->', "><'>"],
+        "stages": ["--", ">->", "><'>"],
         "type": FishType.MID_WATER,
         "pigment": [232, 242],
         "speed": 4,
@@ -203,7 +207,7 @@ class Molly:
     }
 
     Tiny: FishProperties = {
-        "stages": ['.', '=-', '>->'],
+        "stages": [".", "=-", ">->"],
         "type": FishType.MID_WATER,
         "pigment": [232, 242],
         "speed": 5,
@@ -215,7 +219,7 @@ class Molly:
     }
 
     Baby: FishProperties = {
-        "stages": ['.', '=-', "><'>"],
+        "stages": [".", "=-", "><'>"],
         "type": FishType.MID_WATER,
         "pigment": [232, 242],
         "speed": 5,
@@ -227,7 +231,7 @@ class Molly:
     }
 
     Mjoofin: FishProperties = {
-        "stages": ['.', '=-', '><>'],
+        "stages": [".", "=-", "><>"],
         "type": FishType.MID_WATER,
         "pigment": [232, 242],
         "speed": 5,
@@ -238,11 +242,12 @@ class Molly:
         "forced_pigment": [240, 240, 249],
     }
 
+
 class Guppy:
     """ Organizer class for variaties of Guppy """
 
     Guppy: FishProperties = {
-        "stages": ['>=', ']=>', ')=>'],
+        "stages": [">=", "]=>", ")=>"],
         "type": FishType.MID_WATER,
         "speed": 4,
         "pigment": [141],
@@ -252,7 +257,7 @@ class Guppy:
     }
 
     Tuxedo: FishProperties = {
-        "stages": ['>=', ']=>', ')=>'],
+        "stages": [">=", "]=>", ")=>"],
         "type": FishType.MID_WATER,
         "speed": 4,
         "pigment": [232, 255],
@@ -265,7 +270,7 @@ class Guppy:
     }
 
     Blue: FishProperties = {
-        "stages": ['>=', ']=>', ')=>'],
+        "stages": [">=", "]=>", ")=>"],
         "type": FishType.MID_WATER,
         "speed": 4,
         "pigment": [104, 62, 111],
@@ -278,7 +283,7 @@ class Guppy:
     }
 
     Green: FishProperties = {
-        "stages": ['>=', ']=>', ')=>'],
+        "stages": [">=", "]=>", ")=>"],
         "type": FishType.MID_WATER,
         "speed": 4,
         "pigment": [64, 106, 107],
@@ -291,7 +296,7 @@ class Guppy:
     }
 
     Panda: FishProperties = {
-        "stages": ['>=', ']=>', ')=>'],
+        "stages": [">=", "]=>", ")=>"],
         "type": FishType.MID_WATER,
         "speed": 4,
         "pigment": [104, 62, 232, 255],
@@ -303,11 +308,12 @@ class Guppy:
         "variant": "panda",
     }
 
+
 class Corydoras:
     """ Organizer class for variaties of Corydoras """
 
     Corydoras: FishProperties = {
-        "stages": ['>,-', '>,>', '><,>'],
+        "stages": [">,-", ">,>", "><,>"],
         "type": FishType.BOTTOM_DWELLER,
         "pigment": [232, 251, 251, 232],
         "species": "Corydoras",
@@ -316,7 +322,7 @@ class Corydoras:
     }
 
     Panda: FishProperties = {
-        "stages": ['>,-', '>,>', '><,>'],
+        "stages": [">,-", ">,>", "><,>"],
         "type": FishType.BOTTOM_DWELLER,
         "pigment": [232, 252, 252, 232],
         "species": "Corydoras",
