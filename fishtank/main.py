@@ -89,6 +89,17 @@ def cmdline() -> None:
 
         generate_fish(args[index + 1])
 
+    elif (index := test_args("", "--benchmark", args, return_index=True)) is not None:
+        num = None
+        if index + 1 < len(args):
+            try:
+                num = int(args[index + 1])
+            except TypeError:
+                print("Argument to --benchmark has to be an integer!")
+                sys.exit(1)
+
+        InterfaceManager().benchmark(num)
+
     else:
         print("not sure what to do with", args)
 

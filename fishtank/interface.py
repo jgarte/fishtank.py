@@ -10,7 +10,10 @@ The interface to the interactive fishtank to your terminal.
 
 from __future__ import annotations
 
-from typing import Type
+# why does pylint hate sqrt?
+# pylint: disable=no-name-in-module
+from math import sqrt
+from typing import Type, Optional
 from threading import Thread
 from random import randint
 from time import sleep, time
@@ -359,7 +362,7 @@ class FeedingMenu(Menu):
 
 
 class InterfaceManager:
-    """Manager class for all interface related operations"""
+    """ Manager class for all interface related operations """
 
     def __init__(self) -> None:
         styles.default()
@@ -371,21 +374,53 @@ class InterfaceManager:
         self._loop = True
         self._display_loop = Thread(target=self.display_loop, name="display_loop")
 
-    def display_loop(self) -> None:
-        """Main display loop"""
+    def _do_update(self) -> float:
+        start = time()
+        self.aquarium.update()
 
-        sleep_duration = 0.0
+        duration = time() - start
+        sleep(max([1 / 45 - duration, 0.0]))
+
+        return duration
+
+    def display_loop(self) -> None:
+        """ Main display loop """
 
         print(self.aquarium)
         while self._loop:
-            start = time()
-            self.aquarium.update()
-            duration = time() - start
-            sleep_duration = max([1 / 45 - duration, 0.0])
-            sleep(sleep_duration)
+            self._do_update()
+
+    def benchmark(self, num: Optional[int] = None) -> None:
+        """ Run benchmark on how long Aquarium() updates take """
+
+        if num is None:
+            num = 50
+
+        self.start(benchmark=True)
+
+        durations = []
+        for i in range(num):
+            duration = self._do_update()
+            durations.append(round(duration, 5))
+            print("\033[0H\033[K" + f"{i}/{num}")
+
+        wipe()
+        mean = sum(durations) / len(durations)
+        minimum = min(durations)
+        maximum = max(durations)
+        maximum_non_0 = max(durations[1:])
+        std = sqrt(sum([(dur - mean) ** 2 for dur in durations]))
+
+        print("mean:", round(mean, 5))
+        print("minimum @:", minimum, durations.index(minimum))
+        print("maximum @:", maximum, durations.index(maximum))
+        print("maximum_non_0 @:", maximum_non_0, durations.index(maximum_non_0))
+        print("standard deviation:", round(std, 5))
+
+        hide_cursor(0)
 
     def getch_loop(self) -> None:
-        """Main input loop"""
+        """ Main input loop """
 
         while self._loop:
             key = getch()
@@ -426,7 +461,7 @@ class InterfaceManager:
                 print(self.aquarium)
 
     def show(self, menu: Type[Menu]) -> None:
-        """Show menu object"""
+        """ Show menu object """
 
         wipe()
         self.aquarium.pause()
@@ -437,7 +472,7 @@ class InterfaceManager:
         self.aquarium.pause(False)
 
     def generate_fish_properties(self) -> FishProperties:
-        """Generate random fish properties"""
+        """ Generate random fish properties """
 
         def get_random_from_generator(values: set[str]) -> str:
             """Helper for getting random items"""
@@ -478,8 +513,8 @@ class InterfaceManager:
 
         return output
 
-    def start(self) -> None:
-        """Main loop of the program"""
+    def start(self, benchmark: Optional[bool] = False) -> None:
+        """ Start the main loop of the program """
 
         wipe()
         hide_cursor()
@@ -493,5 +528,6 @@ class InterfaceManager:
         # for _ in range(5):
         # self.aquarium += Fish(self.aquarium, random_from(Corydoras))
 
-        self._display_loop.start()
-        self.getch_loop()
+        if not benchmark:
+            self._display_loop.start()
+            self.getch_loop()
