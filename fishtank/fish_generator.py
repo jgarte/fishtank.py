@@ -65,7 +65,9 @@ from .enums import FishProperties, FishType
 def random(cls: object) -> FishProperties:
     \"\"\" Return a random element from class \"\"\"
 
-    options = [attr for attr in dir(cls) if not attr.startswith('_') and not attr == "random"]
+    options = [
+        attr for attr in dir(cls) if not attr.startswith("_") and not attr == "random"
+    ]
     output = getattr(cls, options[randint(0, len(options) - 1)])
  
     # mypy complains that output is of type Any, but we know it cannot be.
@@ -150,6 +152,5 @@ def generate_fish(path: str) -> None:
                 inner_lines, _ = generate_lines(inner_data, special.title())
                 lines += inner_lines
 
-    # print(lines)
     with open(to_local("fishfile.py"), "w") as outfile:
         outfile.write(FILE_TEMPLATE + "\n".join(lines))
