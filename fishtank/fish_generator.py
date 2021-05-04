@@ -148,6 +148,7 @@ def generate_fish(path: str) -> None:
         if (specials := values.get("specials")) is not None:
             for special, special_data in specials.items():
                 inner_data = generate_inner_dict(special_data, attributes, values)
+                inner_data["name"] = special
 
                 inner_lines, _ = generate_lines(inner_data, special.title())
                 lines += inner_lines

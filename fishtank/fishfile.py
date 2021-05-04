@@ -119,6 +119,7 @@ class Molly:
         "age": 2,
         "forced_pigment": [233, 234, 235],
         "message": "wobble wobble",
+        "name": "wobbly",
     }
 
     Winona: FishProperties = {
@@ -132,6 +133,7 @@ class Molly:
         "age": 1,
         "forced_pigment": [233, 232, 233, 253],
         "message": None,
+        "name": "winona",
     }
 
     Ivory: FishProperties = {
@@ -144,6 +146,7 @@ class Molly:
         "pos": [0, 0],
         "age": 2,
         "forced_pigment": [255, 255, 255, 255, 255],
+        "name": "ivory",
     }
 
     Jumbo: FishProperties = {
@@ -156,6 +159,7 @@ class Molly:
         "pos": [0, 0],
         "age": 2,
         "forced_pigment": [255, 255, 255, 255, 255],
+        "name": "jumbo",
     }
 
     Goldie: FishProperties = {
@@ -168,6 +172,7 @@ class Molly:
         "pos": [0, 0],
         "age": 2,
         "forced_pigment": [232, 232, 220],
+        "name": "goldie",
     }
 
     Strength: FishProperties = {
@@ -180,6 +185,7 @@ class Molly:
         "pos": [0, 0],
         "age": 1,
         "forced_pigment": [233, 232, 233, 232, 253],
+        "name": "strength",
     }
 
     Mandarin: FishProperties = {
@@ -192,6 +198,7 @@ class Molly:
         "pos": [0, 0],
         "age": 2,
         "forced_pigment": [220, 220, 220, 220, 220],
+        "name": "mandarin",
     }
 
     Sunny: FishProperties = {
@@ -204,6 +211,7 @@ class Molly:
         "pos": [0, 0],
         "age": 1,
         "forced_pigment": [220, 220, 220, 220, 220],
+        "name": "sunny",
     }
 
     Tiny: FishProperties = {
@@ -216,6 +224,7 @@ class Molly:
         "pos": [0, 0],
         "age": 1,
         "forced_pigment": [240],
+        "name": "tiny",
     }
 
     Baby: FishProperties = {
@@ -228,6 +237,7 @@ class Molly:
         "pos": [0, 0],
         "age": 1,
         "forced_pigment": [240],
+        "name": "baby",
     }
 
     Mjoofin: FishProperties = {
@@ -240,6 +250,7 @@ class Molly:
         "pos": [0, 0],
         "age": 1,
         "forced_pigment": [240, 240, 249],
+        "name": "mjoofin",
     }
 
 

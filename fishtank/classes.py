@@ -223,6 +223,7 @@ class Fish:
         self.skin_length: int = 0
         self.stages: list[str]
         self.bounds: Optional[Boundary] = None
+        self.name: str = ""
         self.skin: str = ""
         self.variant: str
         self.species: str
@@ -554,6 +555,7 @@ class Fish:
             _skin = self.stages[self.age]
             self._skins = _skin, self._reverse_skin(_skin)
             self.skin = self._skins[0]
+            self.skin_length = len(self.skin)
 
     def wipe(self) -> None:
         """Wipe fish's skin at its current position"""
@@ -572,6 +574,27 @@ class Fish:
 
         posx, posy = self.pos
         print(f"\033[{posy};{posx}H" + repr(self))
+
+    def say(self, message: str) -> None:
+        """ Show message in a speechbubble """
+
+        bubble = []
+        bubble.append(" ." + len(message) * "-" + ". ")
+        bubble.append(f"( {message} )")
+        bubble.append(" `" + len(message) * "-" + "` ")
+        bubble.append(" /")
+
+        if not self.pos:
+            dbg(self.name + ": Cannot say() without a set pos!")
+            return
+
+        posx, posy = self.pos
+        posy -= 4
+        if self._heading is self.heading_right:
+            posx += self.skin_length - 1
+
+        for index, line in enumerate(bubble):
+            print(f"\033[{posy+index};{posx}H" + line)
 
 
 class Food:

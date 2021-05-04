@@ -445,8 +445,25 @@ class InterfaceManager:
                 # self.show(FeedingMenu)
 
             elif key == "*":
-                properties = self.generate_fish_properties()
-                self.aquarium += Fish(self.aquarium, properties)
+                # self.aquarium += Fish(self.aquarium, random_from(Molly))
+
+                printer = None
+                self.aquarium.pause()
+                for fish in self.aquarium.fish():
+                    if printer is None:
+                        printer = fish
+                        continue
+
+                    fish.wipe()
+
+                if printer is not None:
+                    printer.say("my name is " + printer.name + "!")
+
+                getch()
+                wipe()
+
+                print(self.aquarium)
+                self.aquarium.pause(False)
 
             elif key == "CTRL_R":
                 self.aquarium.objects = []

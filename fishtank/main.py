@@ -32,7 +32,7 @@ def exit_program() -> None:
 def main() -> None:
     """main method"""
 
-    if not os.path.isfile(to_local("fish_types.py")):
+    if not os.path.isfile(to_local("fishfile.py")):
         print("generating")
         generate_fish(to_local("data/species.json"))
 
